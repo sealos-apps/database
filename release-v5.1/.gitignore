@@ -1,0 +1,10 @@
+node_modules/
+.next
+.env*.local
+next-env.d.ts
+packages/gtm/dist/
+!.vscode/
+.claude
+.vscode/tasks.json
+.agents/
+skills-lock.json
