@@ -150,6 +150,15 @@ const BillingSchema = z.strictObject({
 });
 
 const ComponentsSchema = z.strictObject({
+  metrics: z
+    .strictObject({
+      url: z.string().url(),
+      whitelistKubernetesHosts: z.array(z.string()).default([])
+    })
+    .default({
+      url: 'http://vmselect-vm-stack-victoria-metrics-k8s-stack.vm.svc.cluster.local:8481/select/0/prometheus',
+      whitelistKubernetesHosts: []
+    }),
   monitoring: MonitoringSchema.describe('Prometheus monitoring service URL'),
   alerting: AlertSchema.describe('Database alert service configuration (server-side only)'),
   billing: BillingSchema.describe('Billing service configuration'),

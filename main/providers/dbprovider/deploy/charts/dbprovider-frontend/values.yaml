@@ -38,6 +38,7 @@ dbproviderConfig:
   httpPort: ""
   disableHttps: false
   certSecretName: "wildcard-cert"
+  metricsUrl: "http://vmselect-vm-stack-victoria-metrics-k8s-stack.vm.svc.cluster.local:8481/select/0/prometheus"
   monitorUrl: "http://database-monitor.sealos.svc.cluster.local:9090"
   minioUrl: ""
   minioAccessKey: ""
