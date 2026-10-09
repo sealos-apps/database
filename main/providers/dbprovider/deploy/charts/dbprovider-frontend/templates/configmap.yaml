@@ -23,6 +23,9 @@ data:
         forcedClassName: {{ if .Values.dbproviderConfig.forcedStorageClassName }}{{ .Values.dbproviderConfig.forcedStorageClassName | quote }}{{ else }}null{{ end }}
         maxSize: {{ .Values.dbproviderConfig.storageMaxSize }}
       components:
+        metrics:
+          url: {{ .Values.dbproviderConfig.metricsUrl | quote }}
+          whitelistKubernetesHosts: []
         monitoring:
           url: {{ .Values.dbproviderConfig.monitorUrl | quote }}
         alerting:
