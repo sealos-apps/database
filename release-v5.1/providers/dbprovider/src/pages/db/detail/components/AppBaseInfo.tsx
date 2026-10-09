@@ -13,6 +13,7 @@ import { startDriver, detailDriverObj } from '@/hooks/driver';
 import useEnvStore from '@/store/env';
 import { useGuideStore } from '@/store/guide';
 import { SOURCE_PRICE } from '@/store/static';
+import { useUserStore } from '@/store/user';
 import type { DBComponentsName, DBDetailType, DBType } from '@/types/db';
 import { I18nCommonKey } from '@/types/i18next';
 import { json2NetworkService } from '@/utils/json2Yaml';
@@ -126,6 +127,7 @@ const AppBaseInfo = ({ db = defaultDBDetail }: { db: DBDetailType }) => {
   const [isChecked, setIsChecked] = useState(false);
   const { isOpen, onOpen, onClose } = useDisclosure();
   const { message: toast } = useMessage();
+  const { checkQuotaRequest } = useUserStore();
   const [scenario, setScenario] = useState<'externalNetwork' | 'editPassword'>('externalNetwork');
   const router = useRouter();
   const { detailCompleted, applistCompleted } = useGuideStore();
@@ -355,6 +357,13 @@ const AppBaseInfo = ({ db = defaultDBDetail }: { db: DBDetailType }) => {
       if (!dbStatefulSet || !db) {
         return toast({
           title: 'Missing Parameters',
+          status: 'error'
+        });
+      }
+      const quotaTip = await checkQuotaRequest({ nodeports: 1 });
+      if (quotaTip) {
+        return toast({
+          title: t(quotaTip),
           status: 'error'
         });
       }
