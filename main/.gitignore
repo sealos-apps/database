@@ -1,0 +1,15 @@
+node_modules/
+.next
+.env*.local
+next-env.d.ts
+packages/gtm/dist/
+!.vscode/
+.vscode/tasks.json
+.claude
+.agents
+skills-lock.json
+.omx
+AGENTS.md
+.sisyphus
+**/test-results/
+.codegraph/
