@@ -1,0 +1,62 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "database-frontend.fullname" . }}-config
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "database-frontend.labels" . | nindent 4 }}
+data:
+  config.yaml: |-
+    cloud:
+      domain: {{ .Values.databaseConfig.cloudDomain | quote }}
+      desktopDomain: {{ .Values.databaseConfig.cloudDomain | quote }}
+    database:
+      features:
+        guide: {{ .Values.databaseConfig.guideEnabled }}
+        showDocument: {{ .Values.databaseConfig.showDocument }}
+        fileImport: {{ .Values.databaseConfig.fileImportEnabled }}
+      ui:
+        currencySymbol: {{ .Values.databaseConfig.currencySymbol | quote }}
+        customScripts:
+          {{- toYaml .Values.databaseConfig.customScripts | nindent 10 }}
+      storage:
+        forcedClassName: {{ if .Values.databaseConfig.forcedStorageClassName }}{{ .Values.databaseConfig.forcedStorageClassName | quote }}{{ else }}null{{ end }}
+        maxSize: {{ .Values.databaseConfig.storageMaxSize }}
+      components:
+        monitoring:
+          url: {{ .Values.databaseConfig.monitorUrl | quote }}
+        alerting:
+          url: {{ .Values.databaseConfig.alertingUrl | quote }}
+          secret: {{ .Values.databaseConfig.alertingSecret | quote }}
+        billing:
+          url: {{ .Values.databaseConfig.billingUrl | quote }}
+          secret: {{ .Values.databaseConfig.billingSecret | quote }}
+        logging:
+          url: {{ .Values.databaseConfig.vlogsBaseUrl | quote }}
+        storage:
+          url: {{ .Values.databaseConfig.minioUrl | quote }}
+          port: {{ .Values.databaseConfig.minioPort }}
+          useSSL: {{ .Values.databaseConfig.minioUseSSL }}
+          bucketName: {{ .Values.databaseConfig.minioBucketName | quote }}
+          accessKey: {{ .Values.databaseConfig.minioAccessKey | quote }}
+          secretKey: {{ .Values.databaseConfig.minioSecretKey | quote }}
+        eventAnalysis:
+          enabled: {{ .Values.databaseConfig.eventAnalysisEnabled }}
+          url: {{ .Values.databaseConfig.eventAnalysisUrl | quote }}
+          modelId: {{ .Values.databaseConfig.eventAnalysisModelId | quote }}
+          fastGPTKey: {{ .Values.databaseConfig.eventAnalysisFastGPTKey | quote }}
+      migration:
+        fetchFileImage: {{ .Values.databaseConfig.migrateFileFetchFileImage | quote }}
+        importDataImage: {{ .Values.databaseConfig.migrateFileImportDataImage | quote }}
+        jobCpuMillicores: {{ .Values.databaseConfig.migrationJobCPURequirement }}
+        jobMemoryMiB: {{ .Values.databaseConfig.migrationJobMemoryRequirement }}
+        dumpImportCpuMillicores: {{ .Values.databaseConfig.dumpImportJobCPURequirement }}
+        dumpImportMemoryMiB: {{ .Values.databaseConfig.dumpImportJobMemoryRequirement }}
+      backup:
+        enabled: {{ .Values.databaseConfig.backupEnabled }}
+        jobCpuMillicores: {{ .Values.databaseConfig.backupJobCPURequirement }}
+        jobMemoryMiB: {{ .Values.databaseConfig.backupJobMemoryRequirement }}
+      analytics:
+        rybbit:
+          host: {{ .Values.databaseConfig.rybbitHost | quote }}
+          siteId: {{ .Values.databaseConfig.rybbitSiteId | quote }}

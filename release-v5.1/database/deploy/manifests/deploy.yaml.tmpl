@@ -1,0 +1,127 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  labels:
+    app: database-frontend
+  name: database-frontend
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: database-frontend-config
+  namespace: database-frontend
+data:
+  config.yaml: |-
+    addr: :3000
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: database-frontend
+  namespace: database-frontend
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: database-frontend
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxUnavailable: 25%
+      maxSurge: 25%
+  template:
+    metadata:
+      labels:
+        app: database-frontend
+    spec:
+      serviceAccountName: cluster-version-reader
+      containers:
+        - name: database-frontend
+          env:
+            - name: SEALOS_DOMAIN
+              value: {{ .cloudDomain }}
+            - name: DESKTOP_DOMAIN
+              value: {{ .cloudDomain }}
+            - name: SEALOS_PORT
+              value: "{{ if .cloudPort }}:{{ .cloudPort }}{{ end }}"
+            - name: MONITOR_URL
+              value: {{ .monitorUrl }}
+            - name: MINIO_URL
+              value: {{ .minioUrl }}
+            - name: MINIO_ACCESS_KEY
+              value: {{ .minioAccessKey }}
+            - name: MINIO_SECRET_KEY
+              value: {{ .minioSecretKey }}
+            - name: MIGRATE_FILE_IMAGE
+              value: {{ .migrateFileImage }}
+            - name: MINIO_PORT
+              value: '{{ .minioPort }}'
+            - name: MINIO_BUCKET_NAME
+              value: {{ .minioBucketName }}
+            - name: BACKUP_ENABLED
+              value: "false"
+            - name: SHOW_DOCUMENT
+              value: "true"
+            - name: DATA_IMPORT_ENABLED
+              value: "true"
+            - name: GUIDE_ENABLED
+              value: "{{ .guideEnabled }}"
+            - name: BILLING_URL
+              value: {{ .billingUrl }}
+            - name: MANAGED_DB_ENABLED
+              value: "false"
+            - name: VLOGS_BASE_URL
+              value: {{ .vlogsBaseUrl }}
+          securityContext:
+            runAsNonRoot: true
+            runAsUser: 1001
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop:
+                - 'ALL'
+          resources:
+            limits:
+              cpu: 2000m
+              memory: 2048Mi
+            requests:
+              cpu: 10m
+              memory: 128Mi
+          # do not modify this image, it is used for CI/CD
+          image: ghcr.io/labring/sealos-database-frontend:latest
+          imagePullPolicy: Always
+          volumeMounts:
+            - name: database-frontend-volume
+              mountPath: /config.yaml
+              subPath: config.yaml
+      affinity:
+        podAntiAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+          - weight: 100
+            podAffinityTerm:
+              labelSelector:
+                matchExpressions:
+                - key: "app"
+                  operator: In
+                  values:
+                  - database-frontend
+              topologyKey: "kubernetes.io/hostname"
+      volumes:
+        - name: database-frontend-volume
+          configMap:
+            name: database-frontend-config
+---
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    app: database-frontend
+  name: database-frontend
+  namespace: database-frontend
+spec:
+  ports:
+    - name: http
+      port: 3000
+      protocol: TCP
+      targetPort: 3000
+  selector:
+    app: database-frontend

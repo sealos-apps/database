@@ -17,8 +17,8 @@ permissions:
   contents: read
 
 env:
-  RUNTIME_IMAGE: ghcr.io/${{ github.repository }}/dbprovider-frontend
-  CLUSTER_IMAGE: ghcr.io/${{ github.repository }}/dbprovider-cluster
+  RUNTIME_IMAGE: ghcr.io/${{ github.repository }}/database-frontend
+  CLUSTER_IMAGE: ghcr.io/${{ github.repository }}/database-cluster
   SEALOS_VERSION: v5.1.2-rc5
 
 jobs:
@@ -55,12 +55,12 @@ jobs:
         with:
           version: v3.17.3
       - name: Validate chart and entrypoint
-        working-directory: ${{ inputs.source }}/providers/dbprovider/deploy
+        working-directory: ${{ inputs.source }}/database/deploy
         run: |
           set -euo pipefail
-          bash -n dbprovider-frontend-entrypoint.sh
-          helm lint charts/dbprovider-frontend
-          helm template dbprovider-frontend charts/dbprovider-frontend --namespace dbprovider-frontend > /dev/null
+          bash -n database-frontend-entrypoint.sh
+          helm lint charts/database-frontend
+          helm template database-frontend charts/database-frontend --namespace database-frontend > /dev/null
       - uses: docker/setup-qemu-action@v3
         with:
           platforms: arm64
@@ -77,13 +77,13 @@ jobs:
           context: ./${{ inputs.source }}
           file: ./${{ inputs.source }}/Dockerfile
           build-args: |
-            name=dbprovider
-            path=providers/dbprovider
+            name=database
+            path=database
           platforms: linux/amd64,linux/arm64
           push: ${{ inputs.publish }}
           tags: ${{ env.RUNTIME_IMAGE }}:${{ steps.metadata.outputs.tag }}
-          cache-from: type=gha,scope=dbprovider-${{ inputs.source }}
-          cache-to: type=gha,scope=dbprovider-${{ inputs.source }},mode=max
+          cache-from: type=gha,scope=database-${{ inputs.source }}
+          cache-to: type=gha,scope=database-${{ inputs.source }},mode=max
 
   cluster:
     needs: runtime
@@ -114,7 +114,7 @@ jobs:
           GH_USER: ${{ github.actor }}
         run: sudo sealos login -u "$GH_USER" -p "$GH_TOKEN" ghcr.io
       - name: Build, push and archive cluster image
-        working-directory: ${{ inputs.source }}/providers/dbprovider/deploy
+        working-directory: ${{ inputs.source }}/database/deploy
         env:
           TAG: ${{ needs.runtime.outputs.tag }}
           ARCH: ${{ matrix.arch }}
@@ -122,12 +122,12 @@ jobs:
           set -euo pipefail
           export RUNTIME_REF="${RUNTIME_IMAGE}:${TAG}"
           # Change only the chart's runtime image, preserving all other defaults.
-          ruby -ryaml -e 'p = "charts/dbprovider-frontend/values.yaml"; d = YAML.load_file(p); d["image"] = ENV.fetch("RUNTIME_REF"); File.write(p, YAML.dump(d))'
+          ruby -ryaml -e 'p = "charts/database-frontend/values.yaml"; d = YAML.load_file(p); d["image"] = ENV.fetch("RUNTIME_REF"); File.write(p, YAML.dump(d))'
           sudo sealos registry save --registry-dir=registry --arch "$ARCH" .
           ref="${CLUSTER_IMAGE}:${TAG}-${ARCH}"
           sudo sealos build -t "$ref" --platform "linux/${ARCH}" -f Kubefile .
           sudo sealos push "$ref"
-          archive="dbprovider-cluster-${TAG}-${ARCH}.tar"
+          archive="database-cluster-${TAG}-${ARCH}.tar"
           sudo sealos save -o "${RUNNER_TEMP}/${archive}" "$ref"
           sudo chown "$(id -u):$(id -g)" "${RUNNER_TEMP}/${archive}"
           gzip "${RUNNER_TEMP}/${archive}"
@@ -137,8 +137,8 @@ jobs:
         with:
           name: cluster-${{ inputs.source }}-${{ matrix.arch }}
           path: |
-            ${{ runner.temp }}/dbprovider-cluster-*.tar.gz
-            ${{ runner.temp }}/dbprovider-cluster-*.tar.gz.sha256
+            ${{ runner.temp }}/database-cluster-*.tar.gz
+            ${{ runner.temp }}/database-cluster-*.tar.gz.sha256
           if-no-files-found: error
           retention-days: 7
 
