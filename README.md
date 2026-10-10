@@ -20,14 +20,16 @@ and the runtime image saved by Sealos for the selected architecture.
 
 Images are published to:
 
-- `ghcr.io/sealos-apps/database/dbprovider-frontend:<tag>`
-- `ghcr.io/sealos-apps/database/dbprovider-cluster:<tag>`
+- `ghcr.io/sealos-apps/database/database-frontend:<tag>`
+- `ghcr.io/sealos-apps/database/database-cluster:<tag>`
 
-Tags are `<source>-<sha12>-<run-id>-<attempt>` for branch/manual builds and
-`<source>-<git-tag>` for releases, for example `main-v1.0.0` and
+Tags are `<source>-<sha7>` for branch/manual builds and
+`<source>-<git-tag>` for releases. Branch build examples are `main-f90323a`
+and `release-v5.1-f90323a`; release examples are `main-v1.0.0` and
 `release-v5.1-v1.0.0`. Successful builds on the `main` branch also update the
 separate `main` and `release-v5.1` image channel tags. There is no shared `latest`
-tag. Cluster images additionally have `-amd64` and `-arm64` tags.
+tag. Rebuilding the same commit updates the same versioned tag. Cluster images
+additionally have `-amd64` and `-arm64` tags.
 
 ## Repository configuration
 
@@ -48,7 +50,7 @@ files. Checksums are verified before upload and contain portable basenames.
 Archives are also retained as GitHub Actions artifacts for seven days.
 
 - Release destination: `oss://<bucket>/release/<git-tag>/<source>/`
-- Manual destination: `oss://<bucket>/ci/<source>/<sha12>-<run-id>-<attempt>/`
+- Manual destination: `oss://<bucket>/ci/<source>/<sha7>/`
 
 To publish without creating a tag, run **database-ci** in Actions with
 `publish_images` enabled; enable `upload_oss` to upload archives as well (this
