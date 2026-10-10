@@ -17,8 +17,8 @@ permissions:
   contents: read
 
 env:
-  RUNTIME_IMAGE: ghcr.io/${{ github.repository }}/dbprovider-frontend
-  CLUSTER_IMAGE: ghcr.io/${{ github.repository }}/dbprovider-cluster
+  RUNTIME_IMAGE: ghcr.io/${{ github.repository }}/database-frontend
+  CLUSTER_IMAGE: ghcr.io/${{ github.repository }}/database-cluster
   SEALOS_VERSION: v5.1.2-rc5
 
 jobs:
@@ -44,7 +44,7 @@ jobs:
             version="$GITHUB_REF_NAME"
             prefix="release/${version}/${SOURCE}"
           else
-            version="${GITHUB_SHA:0:12}-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}"
+            version="${GITHUB_SHA:0:7}"
             prefix="ci/${SOURCE}/${version}"
           fi
           tag="${SOURCE}-${version}"
@@ -82,8 +82,8 @@ jobs:
           platforms: linux/amd64,linux/arm64
           push: ${{ inputs.publish }}
           tags: ${{ env.RUNTIME_IMAGE }}:${{ steps.metadata.outputs.tag }}
-          cache-from: type=gha,scope=dbprovider-${{ inputs.source }}
-          cache-to: type=gha,scope=dbprovider-${{ inputs.source }},mode=max
+          cache-from: type=gha,scope=database-${{ inputs.source }}
+          cache-to: type=gha,scope=database-${{ inputs.source }},mode=max
 
   cluster:
     needs: runtime
@@ -127,7 +127,7 @@ jobs:
           ref="${CLUSTER_IMAGE}:${TAG}-${ARCH}"
           sudo sealos build -t "$ref" --platform "linux/${ARCH}" -f Kubefile .
           sudo sealos push "$ref"
-          archive="dbprovider-cluster-${TAG}-${ARCH}.tar"
+          archive="database-cluster-${TAG}-${ARCH}.tar"
           sudo sealos save -o "${RUNNER_TEMP}/${archive}" "$ref"
           sudo chown "$(id -u):$(id -g)" "${RUNNER_TEMP}/${archive}"
           gzip "${RUNNER_TEMP}/${archive}"
@@ -137,8 +137,8 @@ jobs:
         with:
           name: cluster-${{ inputs.source }}-${{ matrix.arch }}
           path: |
-            ${{ runner.temp }}/dbprovider-cluster-*.tar.gz
-            ${{ runner.temp }}/dbprovider-cluster-*.tar.gz.sha256
+            ${{ runner.temp }}/database-cluster-*.tar.gz
+            ${{ runner.temp }}/database-cluster-*.tar.gz.sha256
           if-no-files-found: error
           retention-days: 7
 
