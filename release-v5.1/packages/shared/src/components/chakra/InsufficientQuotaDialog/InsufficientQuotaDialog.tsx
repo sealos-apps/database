@@ -35,7 +35,7 @@ export function InsufficientQuotaDialog({ lang }: InsufficientQuotaDialogProps) 
     // [TODO]: Temporary workaround - ignore stale responses when sealosApp instance changes.
     // [FIXME]: SDK should always use the same instance. When re-initializing, the old instance
     //          gets destroyed but pending requests still wait for responses, causing timeouts.
-    //          Should be fixed in init code (providers/*/src/pages/_app.tsx) to reuse the same instance.
+    //          Should be fixed in init code (database/src/pages/_app.tsx) to reuse the same instance.
     sealosApp
       .getHostConfig()
       .then((config) => {

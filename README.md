@@ -1,6 +1,6 @@
 # database
 
-The `main/` and `release-v5.1/` directories contain independent DBProvider
+The `main/` and `release-v5.1/` directories contain independent Database
 workspaces. Both are built by `.github/workflows/ci.yml`; these names refer to
 source directories, not the branch that triggers CI.
 
@@ -14,8 +14,8 @@ source directories, not the branch that triggers CI.
 | Manual run | Both workspaces | `publish_images` or `upload_oss` | `upload_oss` |
 
 Every runtime image and cluster image supports `linux/amd64` and `linux/arm64`.
-Runtime builds use each workspace's root Dockerfile with `name=dbprovider` and
-`path=providers/dbprovider`. Cluster images include the Helm chart, entrypoint
+Runtime builds use each workspace's root Dockerfile with `name=database` and
+`path=database`. Cluster images include the Helm chart, entrypoint
 and the runtime image saved by Sealos for the selected architecture.
 
 Images are published to:
@@ -58,3 +58,14 @@ also enables image publication). A default manual run only validates builds.
 PRs do not use publishing credentials. CI does not deploy to a cluster or modify
 databases. Cluster packaging and OSS upload are only exercised on publishing
 runs; a passing PR build alone does not verify those integrations.
+
+## Naming migration
+
+Both source workspaces use `database/` and the `database` package name. Helm
+charts, releases, namespaces and frontend resources use `database-frontend`;
+the Desktop application key is `system-database`, and the application resource
+is `database`. The default application hostname is `database.<cloud-domain>`.
+Existing installations must coordinate these names with Desktop integrations,
+DNS, saved configuration and existing `sealos-database-cr` resource labels before upgrading. The main configuration section
+and Helm values key are `database` and `databaseConfig`, respectively. This
+source change does not rename existing cluster resources or migrate data.

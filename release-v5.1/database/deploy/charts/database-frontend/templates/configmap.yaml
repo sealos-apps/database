@@ -1,0 +1,25 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "database-frontend.fullname" . }}-config
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "database-frontend.labels" . | nindent 4 }}
+data:
+  .env: |-
+    SEALOS_DOMAIN={{ .Values.databaseConfig.cloudDomain }}
+    DESKTOP_DOMAIN={{ .Values.databaseConfig.cloudDomain }}
+    SEALOS_PORT={{ include "database-frontend.portSuffix" . }}
+    MONITOR_URL={{ .Values.databaseConfig.monitorUrl }}
+    MIGRATE_FILE_IMAGE={{ .Values.databaseConfig.migrateFileImage }}
+    BACKUP_ENABLED={{ .Values.databaseConfig.backupEnabled }}
+    LOG_ENABLED={{ .Values.databaseConfig.logEnabled }}
+    SHOW_DOCUMENT={{ .Values.databaseConfig.showDocument }}
+    DATA_IMPORT_ENABLED={{ .Values.databaseConfig.dataImportEnabled }}
+    GUIDE_ENABLED={{ .Values.databaseConfig.guideEnabled }}
+    KAFKA_ENABLED={{ .Values.databaseConfig.kafkaEnabled }}
+    BILLING_URL={{ .Values.databaseConfig.billingUrl }}
+    MANAGED_DB_ENABLED={{ .Values.databaseConfig.managedDbEnabled }}
+    VLOGS_BASE_URL={{ .Values.databaseConfig.vlogsBaseUrl }}
+  config.yaml: |-
+    addr: :3000
