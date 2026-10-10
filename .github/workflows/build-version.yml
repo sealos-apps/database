@@ -1,0 +1,208 @@
+name: Build database version
+
+on:
+  workflow_call:
+    inputs:
+      source:
+        required: true
+        type: string
+      publish:
+        required: true
+        type: boolean
+      upload_oss:
+        required: true
+        type: boolean
+
+permissions:
+  contents: read
+
+env:
+  RUNTIME_IMAGE: ghcr.io/${{ github.repository }}/dbprovider-frontend
+  CLUSTER_IMAGE: ghcr.io/${{ github.repository }}/dbprovider-cluster
+  SEALOS_VERSION: v5.1.2-rc5
+
+jobs:
+  runtime:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 90
+    permissions:
+      contents: read
+      packages: write
+    outputs:
+      tag: ${{ steps.metadata.outputs.tag }}
+      prefix: ${{ steps.metadata.outputs.prefix }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Compute versioned metadata
+        id: metadata
+        env:
+          SOURCE: ${{ inputs.source }}
+        run: |
+          set -euo pipefail
+          case "$SOURCE" in main|release-v5.1) ;; *) exit 1 ;; esac
+          if [[ "$GITHUB_REF_TYPE" == tag ]]; then
+            version="$GITHUB_REF_NAME"
+            prefix="release/${version}/${SOURCE}"
+          else
+            version="${GITHUB_SHA:0:12}-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}"
+            prefix="ci/${SOURCE}/${version}"
+          fi
+          tag="${SOURCE}-${version}"
+          [[ "$tag" =~ ^[a-zA-Z0-9_][a-zA-Z0-9_.-]{0,127}$ ]]
+          echo "tag=$tag" >> "$GITHUB_OUTPUT"
+          echo "prefix=$prefix" >> "$GITHUB_OUTPUT"
+      - uses: azure/setup-helm@v4
+        with:
+          version: v3.17.3
+      - name: Validate chart and entrypoint
+        working-directory: ${{ inputs.source }}/providers/dbprovider/deploy
+        run: |
+          set -euo pipefail
+          bash -n dbprovider-frontend-entrypoint.sh
+          helm lint charts/dbprovider-frontend
+          helm template dbprovider-frontend charts/dbprovider-frontend --namespace dbprovider-frontend > /dev/null
+      - uses: docker/setup-qemu-action@v3
+        with:
+          platforms: arm64
+      - uses: docker/setup-buildx-action@v3
+      - uses: docker/login-action@v3
+        if: inputs.publish
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - name: Build both runtime architectures
+        uses: docker/build-push-action@v6
+        with:
+          context: ./${{ inputs.source }}
+          file: ./${{ inputs.source }}/Dockerfile
+          build-args: |
+            name=dbprovider
+            path=providers/dbprovider
+          platforms: linux/amd64,linux/arm64
+          push: ${{ inputs.publish }}
+          tags: ${{ env.RUNTIME_IMAGE }}:${{ steps.metadata.outputs.tag }}
+          cache-from: type=gha,scope=dbprovider-${{ inputs.source }}
+          cache-to: type=gha,scope=dbprovider-${{ inputs.source }},mode=max
+
+  cluster:
+    needs: runtime
+    if: inputs.publish
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    permissions:
+      contents: read
+      packages: write
+    strategy:
+      fail-fast: false
+      matrix:
+        arch: [amd64, arm64]
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install Sealos
+        run: |
+          set -euo pipefail
+          work_dir="$(mktemp -d)"
+          curl --retry 3 -fsSL -o "${work_dir}/sealos.tar.gz" \
+            "https://github.com/labring/sealos/releases/download/${SEALOS_VERSION}/sealos_${SEALOS_VERSION#v}_linux_amd64.tar.gz"
+          tar -xzf "${work_dir}/sealos.tar.gz" -C "$work_dir" sealos
+          sudo install "${work_dir}/sealos" /usr/local/bin/sealos
+          sealos version
+      - name: Login Sealos
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_USER: ${{ github.actor }}
+        run: sudo sealos login -u "$GH_USER" -p "$GH_TOKEN" ghcr.io
+      - name: Build, push and archive cluster image
+        working-directory: ${{ inputs.source }}/providers/dbprovider/deploy
+        env:
+          TAG: ${{ needs.runtime.outputs.tag }}
+          ARCH: ${{ matrix.arch }}
+        run: |
+          set -euo pipefail
+          export RUNTIME_REF="${RUNTIME_IMAGE}:${TAG}"
+          # Change only the chart's runtime image, preserving all other defaults.
+          ruby -ryaml -e 'p = "charts/dbprovider-frontend/values.yaml"; d = YAML.load_file(p); d["image"] = ENV.fetch("RUNTIME_REF"); File.write(p, YAML.dump(d))'
+          sudo sealos registry save --registry-dir=registry --arch "$ARCH" .
+          ref="${CLUSTER_IMAGE}:${TAG}-${ARCH}"
+          sudo sealos build -t "$ref" --platform "linux/${ARCH}" -f Kubefile .
+          sudo sealos push "$ref"
+          archive="dbprovider-cluster-${TAG}-${ARCH}.tar"
+          sudo sealos save -o "${RUNNER_TEMP}/${archive}" "$ref"
+          sudo chown "$(id -u):$(id -g)" "${RUNNER_TEMP}/${archive}"
+          gzip "${RUNNER_TEMP}/${archive}"
+          cd "$RUNNER_TEMP"
+          sha256sum "${archive}.gz" > "${archive}.gz.sha256"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: cluster-${{ inputs.source }}-${{ matrix.arch }}
+          path: |
+            ${{ runner.temp }}/dbprovider-cluster-*.tar.gz
+            ${{ runner.temp }}/dbprovider-cluster-*.tar.gz.sha256
+          if-no-files-found: error
+          retention-days: 7
+
+  release:
+    needs: [runtime, cluster]
+    if: inputs.publish
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - uses: docker/setup-buildx-action@v3
+      - uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - name: Publish cluster manifest
+        env:
+          TAG: ${{ needs.runtime.outputs.tag }}
+        run: |
+          set -euo pipefail
+          docker buildx imagetools create -t "${CLUSTER_IMAGE}:${TAG}" \
+            "${CLUSTER_IMAGE}:${TAG}-amd64" "${CLUSTER_IMAGE}:${TAG}-arm64"
+          docker buildx imagetools inspect "${RUNTIME_IMAGE}:${TAG}"
+          docker buildx imagetools inspect "${CLUSTER_IMAGE}:${TAG}"
+      - name: Update source channel tags
+        if: github.ref == 'refs/heads/main'
+        env:
+          TAG: ${{ needs.runtime.outputs.tag }}
+          SOURCE: ${{ inputs.source }}
+        run: |
+          set -euo pipefail
+          docker buildx imagetools create -t "${RUNTIME_IMAGE}:${SOURCE}" "${RUNTIME_IMAGE}:${TAG}"
+          docker buildx imagetools create -t "${CLUSTER_IMAGE}:${SOURCE}" "${CLUSTER_IMAGE}:${TAG}"
+      - uses: actions/download-artifact@v4
+        if: inputs.upload_oss
+        with:
+          pattern: cluster-${{ inputs.source }}-*
+          path: cluster-bundles
+          merge-multiple: true
+      - name: Upload verified archives to OSS
+        if: inputs.upload_oss
+        working-directory: cluster-bundles
+        env:
+          OSS_ENDPOINT: ${{ secrets.OSS_ENDPOINT }}
+          OSS_ACCESS_KEY_ID: ${{ secrets.OSS_ACCESS_KEY_ID }}
+          OSS_ACCESS_KEY_SECRET: ${{ secrets.OSS_ACCESS_KEY_SECRET }}
+          OSS_BUCKET: ${{ vars.OSS_BUCKET }}
+          OSS_PREFIX: ${{ needs.runtime.outputs.prefix }}
+        run: |
+          set -euo pipefail
+          : "${OSS_ENDPOINT:?OSS_ENDPOINT is required}"
+          : "${OSS_ACCESS_KEY_ID:?OSS_ACCESS_KEY_ID is required}"
+          : "${OSS_ACCESS_KEY_SECRET:?OSS_ACCESS_KEY_SECRET is required}"
+          : "${OSS_BUCKET:?OSS_BUCKET is required}"
+          shopt -s nullglob
+          archives=(*.tar.gz)
+          checksums=(*.tar.gz.sha256)
+          [[ ${#archives[@]} -eq 2 && ${#checksums[@]} -eq 2 ]]
+          sha256sum -c "${checksums[@]}"
+          curl --retry 3 -fsSL https://gosspublic.alicdn.com/ossutil/install.sh -o "$RUNNER_TEMP/install-ossutil.sh"
+          sudo bash "$RUNNER_TEMP/install-ossutil.sh"
+          for file in "${archives[@]}" "${checksums[@]}"; do
+            ossutil64 cp -f -e "$OSS_ENDPOINT" -i "$OSS_ACCESS_KEY_ID" -k "$OSS_ACCESS_KEY_SECRET" \
+              "$file" "oss://${OSS_BUCKET}/${OSS_PREFIX}/${file}"
+          done
