@@ -87,7 +87,7 @@ spec:
               cpu: 10m
               memory: 128Mi
           # do not modify this image, it is used for CI/CD
-          image: ghcr.io/labring/sealos-database-frontend:latest
+          image: ghcr.io/sealos-apps/database/database-frontend:release-v5.1
           imagePullPolicy: Always
           volumeMounts:
             - name: database-frontend-volume
