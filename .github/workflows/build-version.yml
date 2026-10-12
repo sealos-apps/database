@@ -133,12 +133,14 @@ jobs:
           gzip "${RUNNER_TEMP}/${archive}"
           cd "$RUNNER_TEMP"
           sha256sum "${archive}.gz" > "${archive}.gz.sha256"
+          md5sum "${archive}.gz" > "${archive}.gz.md5"
       - uses: actions/upload-artifact@v4
         with:
           name: cluster-${{ inputs.source }}-${{ matrix.arch }}
           path: |
             ${{ runner.temp }}/database-cluster-*.tar.gz
             ${{ runner.temp }}/database-cluster-*.tar.gz.sha256
+            ${{ runner.temp }}/database-cluster-*.tar.gz.md5
           if-no-files-found: error
           retention-days: 7
 
@@ -198,11 +200,13 @@ jobs:
           shopt -s nullglob
           archives=(*.tar.gz)
           checksums=(*.tar.gz.sha256)
-          [[ ${#archives[@]} -eq 2 && ${#checksums[@]} -eq 2 ]]
+          md5_checksums=(*.tar.gz.md5)
+          [[ ${#archives[@]} -eq 2 && ${#checksums[@]} -eq 2 && ${#md5_checksums[@]} -eq 2 ]]
           sha256sum -c "${checksums[@]}"
+          md5sum -c "${md5_checksums[@]}"
           curl --retry 3 -fsSL https://gosspublic.alicdn.com/ossutil/install.sh -o "$RUNNER_TEMP/install-ossutil.sh"
           sudo bash "$RUNNER_TEMP/install-ossutil.sh"
-          for file in "${archives[@]}" "${checksums[@]}"; do
+          for file in "${archives[@]}" "${checksums[@]}" "${md5_checksums[@]}"; do
             ossutil64 cp -f -e "$OSS_ENDPOINT" -i "$OSS_ACCESS_KEY_ID" -k "$OSS_ACCESS_KEY_SECRET" \
               "$file" "oss://${OSS_BUCKET}/${OSS_PREFIX}/${file}"
           done

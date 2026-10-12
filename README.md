@@ -9,7 +9,7 @@ source directories, not the branch that triggers CI.
 | Trigger | Validation | Image publication | OSS upload |
 | --- | --- | --- | --- |
 | Pull request to `main` | Both workspaces, Helm and runtime builds | No | No |
-| Push to `main` | Both workspaces | Yes | No |
+| Push to `main` | Both workspaces | Yes | Yes |
 | Push a `v*` tag | Both workspaces | Yes | Yes |
 | Manual run | Both workspaces | `publish_images` or `upload_oss` | `upload_oss` |
 
@@ -43,14 +43,14 @@ OSS follows the `sealos-apps/template` configuration:
 | `OSS_ENDPOINT` | Actions secret |
 | `OSS_ACCESS_KEY_ID` | Actions secret |
 | `OSS_ACCESS_KEY_SECRET` | Actions secret |
-| `OSS_BUCKET` | Actions variable |
+| `OSS_BUCKET` | Actions variable (`sealos-io/offline/sealos-apps/database`) |
 
-Each source produces two `.tar.gz` cluster image archives and matching `.sha256`
+Each source produces two `.tar.gz` cluster image archives and matching `.sha256` and `.md5`
 files. Checksums are verified before upload and contain portable basenames.
 Archives are also retained as GitHub Actions artifacts for seven days.
 
-- Release destination: `oss://<bucket>/release/<git-tag>/<source>/`
-- Manual destination: `oss://<bucket>/ci/<source>/<sha7>/`
+- Release destination: `oss://<OSS_BUCKET>/release/<git-tag>/<source>/`
+- Branch/manual destination: `oss://<OSS_BUCKET>/ci/<source>/<sha7>/`
 
 To publish without creating a tag, run **database-ci** in Actions with
 `publish_images` enabled; enable `upload_oss` to upload archives as well (this
