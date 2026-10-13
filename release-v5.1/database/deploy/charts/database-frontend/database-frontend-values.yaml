@@ -35,7 +35,7 @@ livenessProbe:
 
 
 # Keep release-v5.1 env defaults and names. Entrypoint auto-fills cloud values from sealos-config when available.
-databaseConfig:
+dbproviderConfig:
   monitorUrl: "http://database-monitor.sealos.svc.cluster.local:9090"
   migrateFileImage: ""
   backupEnabled: "true"
@@ -58,5 +58,5 @@ affinity:
               - key: "app"
                 operator: In
                 values:
-                  - database-frontend
+                  - dbprovider-frontend
           topologyKey: "kubernetes.io/hostname"

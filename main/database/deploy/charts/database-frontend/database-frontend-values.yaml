@@ -1,4 +1,4 @@
-# Custom values for database-frontend helm chart.
+# Custom values for dbprovider-frontend helm chart.
 # This file contains user-customizable configurations.
 
 replicaCount: 1
@@ -11,7 +11,7 @@ resources:
     cpu: 10m
     memory: 128Mi
 
-databaseConfig:
+dbproviderConfig:
   monitorUrl: "http://database-monitor.sealos.svc.cluster.local:9090"
   minioUrl: ""
   minioAccessKey: ""

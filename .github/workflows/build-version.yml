@@ -60,7 +60,8 @@ jobs:
           set -euo pipefail
           bash -n database-frontend-entrypoint.sh
           helm lint charts/database-frontend
-          helm template database-frontend charts/database-frontend --namespace database-frontend > /dev/null
+          helm template dbprovider-frontend charts/database-frontend --namespace dbprovider-frontend > /dev/null
+          python3 ../../../tests/test_deployment_compatibility.py
       - uses: docker/setup-qemu-action@v3
         with:
           platforms: arm64

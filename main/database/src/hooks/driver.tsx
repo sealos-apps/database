@@ -327,7 +327,7 @@ export const quitGuideDriverObj = (t: TFunction, nextStep?: () => void): Config 
                     currentDriver = null;
                   }
                   sealosApp.runEvents('quitGuide', {
-                    appKey: 'system-database',
+                    appKey: 'system-dbprovider',
                     pathname: '/',
                     messageData: { type: 'InternalAppCall', action: 'quitGuide' }
                   });

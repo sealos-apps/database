@@ -11,21 +11,21 @@ metadata:
     higress.io/response-header-control-update: |
       Content-Security-Policy "default-src * blob: data: *.{{ .cloudDomain }}{{ if .cloudPort }}:{{ .cloudPort }}{{ end }} {{ .cloudDomain }}{{ if .cloudPort }}:{{ .cloudPort }}{{ end }}; img-src * data: blob: resource: *.{{ .cloudDomain }}{{ if .cloudPort }}:{{ .cloudPort }}{{ end }} {{ .cloudDomain }}{{ if .cloudPort }}:{{ .cloudPort }}{{ end }}; connect-src * wss: blob: resource:; style-src 'self' 'unsafe-inline' blob: *.{{ .cloudDomain }}{{ if .cloudPort }}:{{ .cloudPort }}{{ end }} {{ .cloudDomain }}{{ if .cloudPort }}:{{ .cloudPort }}{{ end }} resource:; script-src 'self' 'unsafe-inline' 'unsafe-eval' blob: *.{{ .cloudDomain }}{{ if .cloudPort }}:{{ .cloudPort }}{{ end }} {{ .cloudDomain }}{{ if .cloudPort }}:{{ .cloudPort }}{{ end }} resource: *.baidu.com *.bdstatic.com; frame-src 'self' {{ .cloudDomain }}{{ if .cloudPort }}:{{ .cloudPort }}{{ end }} mailto: tel: weixin: mtt: *.baidu.com; frame-ancestors 'self' https://{{ .cloudDomain }}{{ if .cloudPort }}:{{ .cloudPort }}{{ end }} https://*.{{ .cloudDomain }}{{ if .cloudPort }}:{{ .cloudPort }}{{ end }}"
       X-Xss-Protection "1; mode=block"
-  name: database-frontend
-  namespace: database-frontend
+  name: dbprovider-frontend
+  namespace: dbprovider-frontend
 spec:
   rules:
-    - host: database.{{ .cloudDomain }}
+    - host: dbprovider.{{ .cloudDomain }}
       http:
         paths:
           - pathType: Prefix
             path: /
             backend:
               service:
-                name: database-frontend
+                name: dbprovider-frontend
                 port:
                   number: 3000
   tls:
     - hosts:
-        - database.{{ .cloudDomain }}
+        - dbprovider.{{ .cloudDomain }}
       secretName: {{ .certSecretName }}

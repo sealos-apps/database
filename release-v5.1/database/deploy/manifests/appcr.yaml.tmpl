@@ -1,13 +1,13 @@
 apiVersion: app.sealos.io/v1
 kind: App
 metadata:
-  name: database
+  name: dbprovider
   namespace: app-system
 spec:
   data:
     desc: Database
-    url: "https://database.{{ .cloudDomain }}{{ if .cloudPort }}:{{ .cloudPort }}{{ end }}"
-  icon: "https://database.{{ .cloudDomain }}{{ if .cloudPort }}:{{ .cloudPort }}{{ end }}/logo.svg"
+    url: "https://dbprovider.{{ .cloudDomain }}{{ if .cloudPort }}:{{ .cloudPort }}{{ end }}"
+  icon: "https://dbprovider.{{ .cloudDomain }}{{ if .cloudPort }}:{{ .cloudPort }}{{ end }}/logo.svg"
   i18n:
     zh:
       name: 数据库

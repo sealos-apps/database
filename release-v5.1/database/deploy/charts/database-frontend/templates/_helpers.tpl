@@ -57,12 +57,12 @@ app.kubernetes.io/instance: {{ .Release.Name }}
 {{- end }}
 
 {{- define "database-frontend.portSuffix" -}}
-{{- $port := trimPrefix ":" (toString .Values.databaseConfig.cloudPort) -}}
+{{- $port := trimPrefix ":" (toString .Values.dbproviderConfig.cloudPort) -}}
 {{- if $port -}}:{{ $port }}{{- end -}}
 {{- end }}
 
 {{- define "database-frontend.host" -}}
-{{- default (printf "database.%s" .Values.databaseConfig.cloudDomain) .Values.ingress.host -}}
+{{- default (printf "dbprovider.%s" .Values.dbproviderConfig.cloudDomain) .Values.ingress.host -}}
 {{- end }}
 
 {{- define "database-frontend.url" -}}

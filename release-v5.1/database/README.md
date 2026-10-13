@@ -2,34 +2,34 @@
 
 ## Deployment configuration
 
-`databaseConfig.kafkaEnabled` controls whether Kafka is available in the database creation
+`dbproviderConfig.kafkaEnabled` controls whether Kafka is available in the database creation
 form. It defaults to `"true"`. Set it to `"false"` in the user values file to hide Kafka while
 leaving existing Kafka instances manageable:
 
 ```yaml
-databaseConfig:
+dbproviderConfig:
   kafkaEnabled: 'false'
 ```
 
-`databaseConfig.dataImportEnabled` controls whether the Data Import tab appears on supported
+`dbproviderConfig.dataImportEnabled` controls whether the Data Import tab appears on supported
 database detail pages. It defaults to `"true"`. Set it to `"false"` in the user values file to hide
 the tab and redirect direct Data Import detail views back to Overview:
 
 ```yaml
-databaseConfig:
+dbproviderConfig:
   dataImportEnabled: 'false'
 ```
 
-`databaseConfig.logEnabled` controls whether the Log Analysis tab appears on supported database
+`dbproviderConfig.logEnabled` controls whether the Log Analysis tab appears on supported database
 detail pages. It defaults to `"false"` and is independent of `backupEnabled`:
 
 ```yaml
-databaseConfig:
+dbproviderConfig:
   logEnabled: 'true'
 ```
 
-The installer seeds `/root/.sealos/cloud/values/apps/dataflow/database-values.yaml` from
-`database-frontend-values.yaml` only when the user values file does not exist. Existing
+The installer seeds `/root/.sealos/cloud/values/apps/database/dbprovider-values.yaml` from
+`dbprovider-frontend-values.yaml` only when the user values file does not exist. Existing
 installations must update their persisted user values explicitly. This setting does not block
 Kafka creation through the database APIs, and the Data Import setting only hides the tab in the
 database detail UI.

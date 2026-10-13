@@ -41,14 +41,14 @@ app.kubernetes.io/instance: {{ .Release.Name }}
 {{- end }}
 
 {{- define "database-frontend.scheme" -}}
-{{- if eq (toString .Values.databaseConfig.disableHttps) "true" -}}http{{- else -}}https{{- end -}}
+{{- if eq (toString .Values.dbproviderConfig.disableHttps) "true" -}}http{{- else -}}https{{- end -}}
 {{- end }}
 
 {{- define "database-frontend.port" -}}
 {{- $scheme := include "database-frontend.scheme" . -}}
-{{- $port := toString .Values.databaseConfig.cloudPort -}}
+{{- $port := toString .Values.dbproviderConfig.cloudPort -}}
 {{- if eq $scheme "http" -}}
-{{- $port = toString .Values.databaseConfig.httpPort -}}
+{{- $port = toString .Values.dbproviderConfig.httpPort -}}
 {{- end -}}
 {{- if or (and (eq $scheme "https") (or (eq $port "") (eq $port "443"))) (and (eq $scheme "http") (or (eq $port "") (eq $port "80"))) -}}
 {{- "" -}}
@@ -68,15 +68,15 @@ app.kubernetes.io/instance: {{ .Release.Name }}
 {{- end }}
 
 {{- define "database-frontend.cloudOrigin" -}}
-{{- include "database-frontend.scheme" . -}}://{{ .Values.databaseConfig.cloudDomain }}{{ include "database-frontend.portSuffix" . }}
+{{- include "database-frontend.scheme" . -}}://{{ .Values.dbproviderConfig.cloudDomain }}{{ include "database-frontend.portSuffix" . }}
 {{- end }}
 
 {{- define "database-frontend.wildcardCloudOrigin" -}}
-{{- include "database-frontend.scheme" . -}}://*.{{ .Values.databaseConfig.cloudDomain }}{{ include "database-frontend.portSuffix" . }}
+{{- include "database-frontend.scheme" . -}}://*.{{ .Values.dbproviderConfig.cloudDomain }}{{ include "database-frontend.portSuffix" . }}
 {{- end }}
 
 {{- define "database-frontend.host" -}}
-{{- default (printf "database.%s" .Values.databaseConfig.cloudDomain) .Values.ingress.host -}}
+{{- default (printf "dbprovider.%s" .Values.dbproviderConfig.cloudDomain) .Values.ingress.host -}}
 {{- end }}
 
 {{- define "database-frontend.appUrl" -}}

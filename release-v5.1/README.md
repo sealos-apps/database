@@ -21,8 +21,8 @@ make image-build-database
 make image-push-database DOCKER_USERNAME=your-registry IMAGE_TAG=your-tag
 bash -n database/deploy/database-frontend-entrypoint.sh
 helm lint database/deploy/charts/database-frontend
-helm template database-frontend database/deploy/charts/database-frontend \
-  --namespace database-frontend >/dev/null
+helm template dbprovider-frontend database/deploy/charts/database-frontend \
+  --namespace dbprovider-frontend >/dev/null
 ```
 
 Images target `linux/amd64` and `linux/arm64`. CI and publication details are in

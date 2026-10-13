@@ -4,7 +4,7 @@ image: ghcr.io/labring/sealos-database-frontend:latest
 imagePullPolicy: Always
 
 imagePullSecrets: []
-fullnameOverride: "database-frontend"
+fullnameOverride: "dbprovider-frontend"
 
 replicaCount: 1
 
@@ -65,7 +65,7 @@ ingress:
   annotations: {}
 
 # Keep release-v5.1 env defaults and names. Entrypoint auto-fills cloud values from sealos-config when available.
-databaseConfig:
+dbproviderConfig:
   cloudDomain: "127.0.0.1.nip.io"
   cloudPort: ""
   certSecretName: "wildcard-cert"
@@ -92,5 +92,5 @@ affinity:
               - key: "app"
                 operator: In
                 values:
-                  - database-frontend
+                  - dbprovider-frontend
           topologyKey: "kubernetes.io/hostname"

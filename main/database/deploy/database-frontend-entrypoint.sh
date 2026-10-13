@@ -1,8 +1,8 @@
 #!/bin/bash
 set -e
 
-RELEASE_NAME=${RELEASE_NAME:-"database-frontend"}
-RELEASE_NAMESPACE=${RELEASE_NAMESPACE:-"database-frontend"}
+RELEASE_NAME=${RELEASE_NAME:-"dbprovider-frontend"}
+RELEASE_NAMESPACE=${RELEASE_NAMESPACE:-"dbprovider-frontend"}
 CHART_PATH=${CHART_PATH:-"./charts/database-frontend"}
 HELM_OPTS=${HELM_OPTS:-""}
 HELM_OPTIONS=${HELM_OPTIONS:-""}
@@ -24,57 +24,69 @@ add_set_string() {
 }
 
 SEALOS_CLOUD_DOMAIN=${SEALOS_CLOUD_DOMAIN:-"${cloudDomain:-$(get_cm_value sealos-system sealos-config cloudDomain)}"}
-add_set_string databaseConfig.cloudDomain "${SEALOS_CLOUD_DOMAIN}"
+add_set_string dbproviderConfig.cloudDomain "${SEALOS_CLOUD_DOMAIN}"
 SEALOS_CLOUD_PORT=${SEALOS_CLOUD_PORT:-"${cloudPort:-$(get_cm_value sealos-system sealos-config cloudPort)}"}
-add_set_string databaseConfig.cloudPort "${SEALOS_CLOUD_PORT}"
+add_set_string dbproviderConfig.cloudPort "${SEALOS_CLOUD_PORT}"
 SEALOS_HTTP_PORT=${SEALOS_HTTP_PORT:-"${httpPort:-$(get_cm_value sealos-system sealos-config httpPort)}"}
-add_set_string databaseConfig.httpPort "${SEALOS_HTTP_PORT}"
+add_set_string dbproviderConfig.httpPort "${SEALOS_HTTP_PORT}"
 SEALOS_DISABLE_HTTPS=${SEALOS_DISABLE_HTTPS:-"${disableHttps:-$(get_cm_value sealos-system sealos-config disableHttps)}"}
-add_set_string databaseConfig.disableHttps "${SEALOS_DISABLE_HTTPS}"
+add_set_string dbproviderConfig.disableHttps "${SEALOS_DISABLE_HTTPS}"
 SEALOS_CERT_SECRET_NAME=${SEALOS_CERT_SECRET_NAME:-"${certSecretName:-$(get_cm_value sealos-system sealos-config certSecretName)}"}
-add_set_string databaseConfig.certSecretName "${SEALOS_CERT_SECRET_NAME}"
-add_set_string databaseConfig.monitorUrl "${monitorUrl:-}"
-add_set_string databaseConfig.minioUrl "${minioUrl:-}"
-add_set_string databaseConfig.minioAccessKey "${minioAccessKey:-}"
-add_set_string databaseConfig.minioSecretKey "${minioSecretKey:-}"
-add_set_string databaseConfig.minioPort "${minioPort:-}"
-add_set_string databaseConfig.minioUseSSL "${minioUseSSL:-}"
-add_set_string databaseConfig.minioBucketName "${minioBucketName:-}"
-add_set_string databaseConfig.migrateFileFetchFileImage "${migrateFileFetchFileImage:-}"
-add_set_string databaseConfig.migrateFileImportDataImage "${migrateFileImportDataImage:-}"
-add_set_string databaseConfig.guideEnabled "${guideEnabled:-}"
-add_set_string databaseConfig.billingUrl "${billingUrl:-}"
-add_set_string databaseConfig.billingSecret "${billingSecret:-}"
-add_set_string databaseConfig.alertingUrl "${alertingUrl:-}"
-add_set_string databaseConfig.alertingSecret "${alertingSecret:-}"
-add_set_string databaseConfig.vlogsBaseUrl "${vlogsBaseUrl:-}"
-add_set_string databaseConfig.migrationJobCPURequirement "${migrationJobCPURequirement:-}"
-add_set_string databaseConfig.migrationJobMemoryRequirement "${migrationJobMemoryRequirement:-}"
-add_set_string databaseConfig.dumpImportJobCPURequirement "${dumpImportJobCPURequirement:-}"
-add_set_string databaseConfig.dumpImportJobMemoryRequirement "${dumpImportJobMemoryRequirement:-}"
-add_set_string databaseConfig.backupJobCPURequirement "${backupJobCPURequirement:-}"
-add_set_string databaseConfig.backupJobMemoryRequirement "${backupJobMemoryRequirement:-}"
-add_set_string databaseConfig.backupEnabled "${backupEnabled:-}"
-add_set_string databaseConfig.showDocument "${showDocument:-}"
-add_set_string databaseConfig.managedDbEnabled "${managedDbEnabled:-}"
-add_set_string databaseConfig.fileImportEnabled "${fileImportEnabled:-}"
-add_set_string databaseConfig.currencySymbol "${currencySymbol:-}"
-add_set_string databaseConfig.forcedStorageClassName "${forcedStorageClassName:-}"
-add_set_string databaseConfig.storageMaxSize "${storageMaxSize:-}"
-add_set_string databaseConfig.customScripts "${customScripts:-}"
-add_set_string databaseConfig.eventAnalysisEnabled "${eventAnalysisEnabled:-}"
-add_set_string databaseConfig.eventAnalysisUrl "${eventAnalysisUrl:-}"
-add_set_string databaseConfig.eventAnalysisModelId "${eventAnalysisModelId:-}"
-add_set_string databaseConfig.eventAnalysisFastGPTKey "${eventAnalysisFastGPTKey:-}"
+add_set_string dbproviderConfig.certSecretName "${SEALOS_CERT_SECRET_NAME}"
+add_set_string dbproviderConfig.monitorUrl "${monitorUrl:-}"
+add_set_string dbproviderConfig.minioUrl "${minioUrl:-}"
+add_set_string dbproviderConfig.minioAccessKey "${minioAccessKey:-}"
+add_set_string dbproviderConfig.minioSecretKey "${minioSecretKey:-}"
+add_set_string dbproviderConfig.minioPort "${minioPort:-}"
+add_set_string dbproviderConfig.minioUseSSL "${minioUseSSL:-}"
+add_set_string dbproviderConfig.minioBucketName "${minioBucketName:-}"
+add_set_string dbproviderConfig.migrateFileFetchFileImage "${migrateFileFetchFileImage:-}"
+add_set_string dbproviderConfig.migrateFileImportDataImage "${migrateFileImportDataImage:-}"
+add_set_string dbproviderConfig.guideEnabled "${guideEnabled:-}"
+add_set_string dbproviderConfig.billingUrl "${billingUrl:-}"
+add_set_string dbproviderConfig.billingSecret "${billingSecret:-}"
+add_set_string dbproviderConfig.alertingUrl "${alertingUrl:-}"
+add_set_string dbproviderConfig.alertingSecret "${alertingSecret:-}"
+add_set_string dbproviderConfig.vlogsBaseUrl "${vlogsBaseUrl:-}"
+add_set_string dbproviderConfig.migrationJobCPURequirement "${migrationJobCPURequirement:-}"
+add_set_string dbproviderConfig.migrationJobMemoryRequirement "${migrationJobMemoryRequirement:-}"
+add_set_string dbproviderConfig.dumpImportJobCPURequirement "${dumpImportJobCPURequirement:-}"
+add_set_string dbproviderConfig.dumpImportJobMemoryRequirement "${dumpImportJobMemoryRequirement:-}"
+add_set_string dbproviderConfig.backupJobCPURequirement "${backupJobCPURequirement:-}"
+add_set_string dbproviderConfig.backupJobMemoryRequirement "${backupJobMemoryRequirement:-}"
+add_set_string dbproviderConfig.backupEnabled "${backupEnabled:-}"
+add_set_string dbproviderConfig.showDocument "${showDocument:-}"
+add_set_string dbproviderConfig.managedDbEnabled "${managedDbEnabled:-}"
+add_set_string dbproviderConfig.fileImportEnabled "${fileImportEnabled:-}"
+add_set_string dbproviderConfig.currencySymbol "${currencySymbol:-}"
+add_set_string dbproviderConfig.forcedStorageClassName "${forcedStorageClassName:-}"
+add_set_string dbproviderConfig.storageMaxSize "${storageMaxSize:-}"
+add_set_string dbproviderConfig.customScripts "${customScripts:-}"
+add_set_string dbproviderConfig.eventAnalysisEnabled "${eventAnalysisEnabled:-}"
+add_set_string dbproviderConfig.eventAnalysisUrl "${eventAnalysisUrl:-}"
+add_set_string dbproviderConfig.eventAnalysisModelId "${eventAnalysisModelId:-}"
+add_set_string dbproviderConfig.eventAnalysisFastGPTKey "${eventAnalysisFastGPTKey:-}"
 
 adopt_namespaced_resource() {
   local namespace="$1"
   local kind="$2"
   local name="$3"
   if kubectl -n "${namespace}" get "${kind}" "${name}" >/dev/null 2>&1; then
+    local ownership managed_by owner_release owner_namespace
+    ownership=$(kubectl -n "${namespace}" get "${kind}" "${name}" \
+      -o jsonpath='{.metadata.labels.app\.kubernetes\.io/managed-by}{"|"}{.metadata.annotations.meta\.helm\.sh/release-name}{"|"}{.metadata.annotations.meta\.helm\.sh/release-namespace}')
+    IFS='|' read -r managed_by owner_release owner_namespace <<< "${ownership}"
+    if { [ "${managed_by}" = "Helm" ] || [ -n "${owner_release}" ] || [ -n "${owner_namespace}" ]; } && \
+      { [ "${owner_release}" != "${RELEASE_NAME}" ] || [ "${owner_namespace}" != "${RELEASE_NAMESPACE}" ]; }; then
+      echo "Refusing to adopt ${kind} ${namespace}/${name}: owned by Helm release ${owner_namespace}/${owner_release}" >&2
+      return 1
+    fi
+    if [ "${managed_by}" = "Helm" ]; then
+      return 0
+    fi
     echo "Adopting ${kind} ${namespace}/${name}..."
-    kubectl -n "${namespace}" label "${kind}" "${name}" app.kubernetes.io/managed-by=Helm --overwrite >/dev/null 2>&1 || true
-    kubectl -n "${namespace}" annotate "${kind}" "${name}" meta.helm.sh/release-name="${RELEASE_NAME}" meta.helm.sh/release-namespace="${RELEASE_NAMESPACE}" --overwrite >/dev/null 2>&1 || true
+    kubectl -n "${namespace}" label "${kind}" "${name}" app.kubernetes.io/managed-by=Helm --overwrite >/dev/null
+    kubectl -n "${namespace}" annotate "${kind}" "${name}" meta.helm.sh/release-name="${RELEASE_NAME}" meta.helm.sh/release-namespace="${RELEASE_NAMESPACE}" --overwrite >/dev/null
   fi
 }
 
@@ -82,30 +94,40 @@ adopt_cluster_resource() {
   local kind="$1"
   local name="$2"
   if kubectl get "${kind}" "${name}" >/dev/null 2>&1; then
+    local ownership managed_by owner_release owner_namespace
+    ownership=$(kubectl get "${kind}" "${name}" \
+      -o jsonpath='{.metadata.labels.app\.kubernetes\.io/managed-by}{"|"}{.metadata.annotations.meta\.helm\.sh/release-name}{"|"}{.metadata.annotations.meta\.helm\.sh/release-namespace}')
+    IFS='|' read -r managed_by owner_release owner_namespace <<< "${ownership}"
+    if { [ "${managed_by}" = "Helm" ] || [ -n "${owner_release}" ] || [ -n "${owner_namespace}" ]; } && \
+      { [ "${owner_release}" != "${RELEASE_NAME}" ] || [ "${owner_namespace}" != "${RELEASE_NAMESPACE}" ]; }; then
+      echo "Refusing to adopt ${kind} ${name}: owned by Helm release ${owner_namespace}/${owner_release}" >&2
+      return 1
+    fi
+    if [ "${managed_by}" = "Helm" ]; then
+      return 0
+    fi
     echo "Adopting ${kind} ${name}..."
-    kubectl label "${kind}" "${name}" app.kubernetes.io/managed-by=Helm --overwrite >/dev/null 2>&1 || true
-    kubectl annotate "${kind}" "${name}" meta.helm.sh/release-name="${RELEASE_NAME}" meta.helm.sh/release-namespace="${RELEASE_NAMESPACE}" --overwrite >/dev/null 2>&1 || true
+    kubectl label "${kind}" "${name}" app.kubernetes.io/managed-by=Helm --overwrite >/dev/null
+    kubectl annotate "${kind}" "${name}" meta.helm.sh/release-name="${RELEASE_NAME}" meta.helm.sh/release-namespace="${RELEASE_NAMESPACE}" --overwrite >/dev/null
   fi
 }
 
 echo "Checking and adopting existing resources..."
 if kubectl get namespace "${RELEASE_NAMESPACE}" >/dev/null 2>&1; then
-  kubectl label namespace "${RELEASE_NAMESPACE}" app.kubernetes.io/managed-by=Helm --overwrite >/dev/null 2>&1 || true
-  kubectl annotate namespace "${RELEASE_NAMESPACE}" meta.helm.sh/release-name="${RELEASE_NAME}" meta.helm.sh/release-namespace="${RELEASE_NAMESPACE}" --overwrite >/dev/null 2>&1 || true
 
   adopt_namespaced_resource "${RELEASE_NAMESPACE}" serviceaccount cluster-version-reader
-  adopt_namespaced_resource "${RELEASE_NAMESPACE}" configmap database-frontend-config
-  adopt_namespaced_resource "${RELEASE_NAMESPACE}" service database-frontend
-  adopt_namespaced_resource "${RELEASE_NAMESPACE}" deployment database-frontend
-  adopt_namespaced_resource "${RELEASE_NAMESPACE}" ingress database-frontend
+  adopt_namespaced_resource "${RELEASE_NAMESPACE}" configmap dbprovider-frontend-config
+  adopt_namespaced_resource "${RELEASE_NAMESPACE}" service dbprovider-frontend
+  adopt_namespaced_resource "${RELEASE_NAMESPACE}" deployment dbprovider-frontend
+  adopt_namespaced_resource "${RELEASE_NAMESPACE}" ingress dbprovider-frontend
 fi
 
-adopt_namespaced_resource app-system apps.app.sealos.io database
+adopt_namespaced_resource app-system apps.app.sealos.io dbprovider
 adopt_cluster_resource clusterrole cluster-version-reader
 adopt_cluster_resource clusterrolebinding cluster-version-reader-rolebinding
 
 SERVICE_NAME="database-frontend"
-USER_VALUES_PATH="/root/.sealos/cloud/values/core/${SERVICE_NAME}-values.yaml"
+USER_VALUES_PATH=${USER_VALUES_PATH:-"/root/.sealos/cloud/values/core/dbprovider-frontend-values.yaml"}
 
 if [ ! -f "${USER_VALUES_PATH}" ]; then
   mkdir -p "$(dirname "${USER_VALUES_PATH}")"

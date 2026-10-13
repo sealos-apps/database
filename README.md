@@ -59,13 +59,20 @@ PRs do not use publishing credentials. CI does not deploy to a cluster or modify
 databases. Cluster packaging and OSS upload are only exercised on publishing
 runs; a passing PR build alone does not verify those integrations.
 
-## Naming migration
+## Deployment compatibility
 
-Both source workspaces use `database/` and the `database` package name. Helm
-charts, releases, namespaces and frontend resources use `database-frontend`;
-the Desktop application key is `system-database`, and the application resource
-is `database`. The default application hostname is `database.<cloud-domain>`.
-Existing installations must coordinate these names with Desktop integrations,
-DNS, saved configuration and existing `sealos-database-cr` resource labels before upgrading. The main configuration section
-and Helm values key are `database` and `databaseConfig`, respectively. This
-source change does not rename existing cluster resources or migrate data.
+Both source workspaces use `database/` and the `database` package name. Runtime
+and cluster image names use `database`. Deployment identity
+remains `dbprovider-frontend`: Helm release, namespace, resource names and selectors.
+The chart directory remains `charts/database-frontend`.
+
+The Desktop application key remains `system-dbprovider`, the App resource is
+`dbprovider`, and the default hostname is `dbprovider.<cloud-domain>`. Helm values
+use `dbproviderConfig`; the main runtime configuration section is `database`.
+User values are persisted at:
+
+- main: `/root/.sealos/cloud/values/core/dbprovider-frontend-values.yaml`
+- release-v5.1: `/root/.sealos/cloud/values/apps/database/dbprovider-values.yaml`
+
+Existing user values are retained. The installer refuses to adopt resources owned
+by a different Helm release. No namespace or database-data migration is performed.

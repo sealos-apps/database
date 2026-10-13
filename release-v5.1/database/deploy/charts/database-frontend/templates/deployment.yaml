@@ -44,7 +44,7 @@ spec:
           imagePullPolicy: {{ .Values.imagePullPolicy }}
           env:
             - name: NODE_TLS_REJECT_UNAUTHORIZED
-              value: {{ .Values.databaseConfig.tlsRejectUnauthorized | quote }}
+              value: {{ .Values.dbproviderConfig.tlsRejectUnauthorized | quote }}
           startupProbe:
             {{- toYaml .Values.startupProbe | nindent 12 }}
           readinessProbe:
@@ -52,10 +52,10 @@ spec:
           livenessProbe:
             {{- toYaml .Values.livenessProbe | nindent 12 }}
           volumeMounts:
-            - name: database-frontend-volume
+            - name: dbprovider-frontend-volume
               mountPath: /app/database/.env
               subPath: .env
-            - name: database-frontend-volume
+            - name: dbprovider-frontend-volume
               mountPath: /config.yaml
               subPath: config.yaml
       {{- with .Values.affinity }}
@@ -63,7 +63,7 @@ spec:
         {{- toYaml . | nindent 8 }}
       {{- end }}
       volumes:
-        - name: database-frontend-volume
+        - name: dbprovider-frontend-volume
           configMap:
             defaultMode: 420
             name: {{ include "database-frontend.fullname" . }}-config

@@ -1,10 +1,10 @@
-# Default values for database-frontend helm chart.
+# Default values for dbprovider-frontend helm chart.
 
 image: ghcr.io/labring/sealos-database-frontend:latest
 imagePullPolicy: Always
 
 imagePullSecrets: []
-fullnameOverride: "database-frontend"
+fullnameOverride: "dbprovider-frontend"
 
 replicaCount: 1
 
@@ -32,7 +32,7 @@ ingress:
   host: ""
   annotations: {}
 
-databaseConfig:
+dbproviderConfig:
   cloudDomain: "127.0.0.1.nip.io"
   cloudPort: ""
   httpPort: ""
@@ -94,5 +94,5 @@ affinity:
               - key: "app"
                 operator: In
                 values:
-                  - database-frontend
+                  - dbprovider-frontend
           topologyKey: "kubernetes.io/hostname"
