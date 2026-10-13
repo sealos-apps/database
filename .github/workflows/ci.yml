@@ -1,4 +1,4 @@
-name: database-ci
+name: dbprovider-ci
 
 on:
   pull_request:
@@ -22,7 +22,7 @@ permissions:
   packages: write
 
 concurrency:
-  group: database-ci-${{ github.ref }}
+  group: dbprovider-ci-${{ github.ref }}
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
