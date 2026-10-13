@@ -19,7 +19,7 @@ class DeploymentCompatibility(unittest.TestCase):
                                   '  monitorUrl: "http://preserved-monitor:9090"\n')
                 result = subprocess.run([
                     "helm", "template", "dbprovider-frontend",
-                    str(ROOT / source / "dbprovider/deploy/charts/dbprovider-frontend"),
+                    str(ROOT / source / "database/deploy/charts/database-frontend"),
                     "--namespace", "dbprovider-frontend", "-f", str(values),
                 ], text=True, capture_output=True, check=True).stdout
                 self.assertIn("dbprovider.upgrade.example", result)
@@ -28,7 +28,7 @@ class DeploymentCompatibility(unittest.TestCase):
                 self.assertIn("name: dbprovider\n", result)
                 self.assertIn("namespace: dbprovider-frontend", result)
                 if source == "main":
-                    self.assertIn("    dbprovider:\n", result)
+                    self.assertIn("    database:\n", result)
 
     def run_installer(self, source, ownership):
         with tempfile.TemporaryDirectory() as temp:
@@ -65,8 +65,8 @@ if pathlib.Path(sys.argv[0]).name == "kubectl":
             env.update(PATH=f"{directory}:{env['PATH']}", MOCK_CALLS=str(calls),
                        MOCK_OWNERSHIP=ownership, TOOLS_FILE=str(tools),
                        USER_VALUES_PATH=str(values))
-            deploy = ROOT / source / "dbprovider/deploy"
-            result = subprocess.run(["bash", "dbprovider-frontend-entrypoint.sh"],
+            deploy = ROOT / source / "database/deploy"
+            result = subprocess.run(["bash", "database-frontend-entrypoint.sh"],
                                     cwd=deploy, env=env, text=True, capture_output=True)
             self.assertEqual(values.read_text(), content)
             return result, [json.loads(line) for line in calls.read_text().splitlines()]

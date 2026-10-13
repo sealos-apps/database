@@ -24,7 +24,7 @@ importers:
         specifier: ^5.2.2
         version: 5.2.2
 
-  dbprovider:
+  database:
     dependencies:
       '@chakra-ui/anatomy':
         specifier: ^2.2.1

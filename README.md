@@ -1,4 +1,4 @@
-# dbprovider
+# database
 
 The `main/` and `release-v5.1/` directories contain independent Database
 workspaces. Both are built by `.github/workflows/ci.yml`; these names refer to
@@ -14,14 +14,14 @@ source directories, not the branch that triggers CI.
 | Manual run | Both workspaces | `publish_images` or `upload_oss` | `upload_oss` |
 
 Every runtime image and cluster image supports `linux/amd64` and `linux/arm64`.
-Runtime builds use each workspace's root Dockerfile with `name=dbprovider` and
-`path=dbprovider`. Cluster images include the Helm chart, entrypoint
+Runtime builds use each workspace's root Dockerfile with `name=database` and
+`path=database`. Cluster images include the Helm chart, entrypoint
 and the runtime image saved by Sealos for the selected architecture.
 
 Images are published to:
 
-- `ghcr.io/sealos-apps/database/dbprovider-frontend:<tag>`
-- `ghcr.io/sealos-apps/database/dbprovider-cluster:<tag>`
+- `ghcr.io/sealos-apps/database/database-frontend:<tag>`
+- `ghcr.io/sealos-apps/database/database-cluster:<tag>`
 
 Tags are `<source>-<sha7>` for branch/manual builds and
 `<source>-<git-tag>` for releases. Branch build examples are `main-f90323a`
@@ -52,7 +52,7 @@ Archives are also retained as GitHub Actions artifacts for seven days.
 - Release destination: `oss://<OSS_BUCKET>/release/<git-tag>/<source>/`
 - Branch/manual destination: `oss://<OSS_BUCKET>/ci/<source>/<sha7>/`
 
-To publish without creating a tag, run **dbprovider-ci** in Actions with
+To publish without creating a tag, run **database-ci** in Actions with
 `publish_images` enabled; enable `upload_oss` to upload archives as well (this
 also enables image publication). A default manual run only validates builds.
 PRs do not use publishing credentials. CI does not deploy to a cluster or modify
@@ -61,14 +61,14 @@ runs; a passing PR build alone does not verify those integrations.
 
 ## Deployment compatibility
 
-Both source workspaces use `dbprovider/` and the `dbprovider` package name. Runtime
-and cluster image names use `dbprovider`. Deployment identity
+Both source workspaces use `database/` and the `database` package name. Runtime
+and cluster image names use `database`. Deployment identity
 remains `dbprovider-frontend`: Helm release, namespace, resource names and selectors.
-The chart directory remains `charts/dbprovider-frontend`.
+The chart directory remains `charts/database-frontend`.
 
 The Desktop application key remains `system-dbprovider`, the App resource is
 `dbprovider`, and the default hostname is `dbprovider.<cloud-domain>`. Helm values
-use `dbproviderConfig`; the main runtime configuration section is `dbprovider`.
+use `dbproviderConfig`; the main runtime configuration section is `database`.
 User values are persisted at:
 
 - main: `/root/.sealos/cloud/values/core/dbprovider-frontend-values.yaml`
