@@ -22,12 +22,8 @@ env:
   SEALOS_VERSION: v5.1.2-rc5
 
 jobs:
-  runtime:
+  metadata:
     runs-on: ubuntu-24.04
-    timeout-minutes: 90
-    permissions:
-      contents: read
-      packages: write
     outputs:
       tag: ${{ steps.metadata.outputs.tag }}
       prefix: ${{ steps.metadata.outputs.prefix }}
@@ -62,9 +58,24 @@ jobs:
           helm lint charts/database-frontend
           helm template dbprovider-frontend charts/database-frontend --namespace dbprovider-frontend > /dev/null
           python3 ../../../tests/test_deployment_compatibility.py
-      - uses: docker/setup-qemu-action@v3
-        with:
-          platforms: arm64
+
+  runtime:
+    needs: metadata
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 90
+    permissions:
+      contents: read
+      packages: write
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - arch: amd64
+            runner: ubuntu-24.04
+          - arch: arm64
+            runner: ubuntu-24.04-arm
+    steps:
+      - uses: actions/checkout@v4
       - uses: docker/setup-buildx-action@v3
       - uses: docker/login-action@v3
         if: inputs.publish
@@ -72,7 +83,7 @@ jobs:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
-      - name: Build both runtime architectures
+      - name: Build runtime image (${{ matrix.arch }})
         uses: docker/build-push-action@v6
         with:
           context: ./${{ inputs.source }}
@@ -80,16 +91,39 @@ jobs:
           build-args: |
             name=database
             path=database
-          platforms: linux/amd64,linux/arm64
+          platforms: linux/${{ matrix.arch }}
           push: ${{ inputs.publish }}
-          tags: ${{ env.RUNTIME_IMAGE }}:${{ steps.metadata.outputs.tag }}
-          cache-from: type=gha,scope=database-${{ inputs.source }}
-          cache-to: type=gha,scope=database-${{ inputs.source }},mode=max
+          tags: ${{ env.RUNTIME_IMAGE }}:${{ needs.metadata.outputs.tag }}-${{ matrix.arch }}
+          cache-from: type=gha,scope=database-${{ inputs.source }}-${{ matrix.arch }}
+          cache-to: type=gha,scope=database-${{ inputs.source }}-${{ matrix.arch }},mode=max
 
-  cluster:
-    needs: runtime
+  runtime-release:
+    needs: [metadata, runtime]
     if: inputs.publish
     runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - uses: docker/setup-buildx-action@v3
+      - uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - name: Publish runtime manifest
+        env:
+          TAG: ${{ needs.metadata.outputs.tag }}
+        run: |
+          set -euo pipefail
+          docker buildx imagetools create -t "${RUNTIME_IMAGE}:${TAG}" \
+            "${RUNTIME_IMAGE}:${TAG}-amd64" "${RUNTIME_IMAGE}:${TAG}-arm64"
+          docker buildx imagetools inspect "${RUNTIME_IMAGE}:${TAG}"
+
+  cluster:
+    needs: [metadata, runtime-release]
+    if: inputs.publish
+    runs-on: ${{ matrix.runner }}
     timeout-minutes: 45
     permissions:
       contents: read
@@ -97,15 +131,21 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        arch: [amd64, arm64]
+        include:
+          - arch: amd64
+            runner: ubuntu-24.04
+          - arch: arm64
+            runner: ubuntu-24.04-arm
     steps:
       - uses: actions/checkout@v4
       - name: Install Sealos
+        env:
+          ARCH: ${{ matrix.arch }}
         run: |
           set -euo pipefail
           work_dir="$(mktemp -d)"
           curl --retry 3 -fsSL -o "${work_dir}/sealos.tar.gz" \
-            "https://github.com/labring/sealos/releases/download/${SEALOS_VERSION}/sealos_${SEALOS_VERSION#v}_linux_amd64.tar.gz"
+            "https://github.com/labring/sealos/releases/download/${SEALOS_VERSION}/sealos_${SEALOS_VERSION#v}_linux_${ARCH}.tar.gz"
           tar -xzf "${work_dir}/sealos.tar.gz" -C "$work_dir" sealos
           sudo install "${work_dir}/sealos" /usr/local/bin/sealos
           sealos version
@@ -117,7 +157,7 @@ jobs:
       - name: Build, push and archive cluster image
         working-directory: ${{ inputs.source }}/database/deploy
         env:
-          TAG: ${{ needs.runtime.outputs.tag }}
+          TAG: ${{ needs.metadata.outputs.tag }}
           ARCH: ${{ matrix.arch }}
         run: |
           set -euo pipefail
@@ -146,7 +186,7 @@ jobs:
           retention-days: 7
 
   release:
-    needs: [runtime, cluster]
+    needs: [metadata, runtime-release, cluster]
     if: inputs.publish
     runs-on: ubuntu-24.04
     permissions:
@@ -161,7 +201,7 @@ jobs:
           password: ${{ secrets.GITHUB_TOKEN }}
       - name: Publish cluster manifest
         env:
-          TAG: ${{ needs.runtime.outputs.tag }}
+          TAG: ${{ needs.metadata.outputs.tag }}
         run: |
           set -euo pipefail
           docker buildx imagetools create -t "${CLUSTER_IMAGE}:${TAG}" \
@@ -171,7 +211,7 @@ jobs:
       - name: Update source channel tags
         if: github.ref == 'refs/heads/main'
         env:
-          TAG: ${{ needs.runtime.outputs.tag }}
+          TAG: ${{ needs.metadata.outputs.tag }}
           SOURCE: ${{ inputs.source }}
         run: |
           set -euo pipefail
@@ -191,7 +231,7 @@ jobs:
           OSS_ACCESS_KEY_ID: ${{ secrets.OSS_ACCESS_KEY_ID }}
           OSS_ACCESS_KEY_SECRET: ${{ secrets.OSS_ACCESS_KEY_SECRET }}
           OSS_BUCKET: ${{ vars.OSS_BUCKET }}
-          OSS_PREFIX: ${{ needs.runtime.outputs.prefix }}
+          OSS_PREFIX: ${{ needs.metadata.outputs.prefix }}
         run: |
           set -euo pipefail
           : "${OSS_ENDPOINT:?OSS_ENDPOINT is required}"
