@@ -59,7 +59,8 @@ export const useQuotaStore = create<State>()(
       },
       fetchUserQuota: async () => {
         const response = await sealosApp.getWorkspaceQuota();
-        return response.quota;
+        // SDK 0.1.24 also models pod quotas; v5.1 only supports the existing quota kinds.
+        return response.quota.filter((item): item is WorkspaceQuotaItem => item.type !== 'pod');
       },
       exceededQuotas: [],
       setExceededQuotas: (quotas) => {

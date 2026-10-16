@@ -18,3 +18,5 @@ export * from './i18n';
 
 // Utils
 export * from './utils';
+
+export { useHostConfigStore } from './store/hostConfig';

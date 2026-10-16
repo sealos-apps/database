@@ -1,3 +1,4 @@
+import { useHostConfigStore } from '@sealos/shared';
 import { theme } from '@/constants/theme';
 import { useConfirm } from '@/hooks/useConfirm';
 import { useLoading } from '@/hooks/useLoading';
@@ -94,6 +95,7 @@ function AppContent({
 
   useEffect(() => {
     const response = createSealosApp();
+    void useHostConfigStore.getState().loadHostConfig(() => sealosApp.getHostConfig());
     (async () => {
       try {
         const newSession = JSON.stringify(await sealosApp.getSession());

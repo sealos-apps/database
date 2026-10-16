@@ -37,7 +37,6 @@ dbproviderConfig:
   showDocument: true
   managedDbEnabled: false
   fileImportEnabled: false
-  currencySymbol: "shellCoin"
   forcedStorageClassName: ""
   storageMaxSize: 300
   customScripts: []

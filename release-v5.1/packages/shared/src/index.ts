@@ -15,3 +15,5 @@ export * from './components';
 
 // i18n
 export * from './i18n';
+
+export { useHostConfigStore } from './store/hostConfig';
