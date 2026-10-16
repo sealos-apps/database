@@ -15,7 +15,6 @@ export async function getClientAppConfigServer() {
   return validateClientAppConfigOrThrow(ClientAppConfigSchema, {
     domain: cfg.cloud.domain,
     desktopDomain: cfg.cloud.desktopDomain,
-    currencySymbol: cfg.database.ui.currencySymbol,
     guideEnabled: cfg.database.features.guide,
     showDocument: cfg.database.features.showDocument,
     fileImportEnabled: cfg.database.features.fileImport,

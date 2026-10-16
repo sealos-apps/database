@@ -209,8 +209,8 @@ importers:
         specifier: ^1.68.0
         version: 1.69.5
       sealos-desktop-sdk:
-        specifier: workspace:*
-        version: link:../packages/client-sdk
+        specifier: npm:@labring/sealos-desktop-sdk@0.1.24
+        version: /@labring/sealos-desktop-sdk@0.1.24(@kubernetes/client-node@0.18.1)
       sharp:
         specifier: ^0.32.6
         version: 0.32.6
@@ -275,55 +275,6 @@ importers:
       webpack-bundle-analyzer:
         specifier: ^4.9.1
         version: 4.10.1
-
-  packages/client-sdk:
-    dependencies:
-      axios:
-        specifier: ^1.5.1
-        version: 1.6.2
-      dayjs:
-        specifier: ^1.11.10
-        version: 1.11.10
-      js-cookie:
-        specifier: ^3.0.5
-        version: 3.0.5
-      js-yaml:
-        specifier: ^4.1.0
-        version: 4.1.0
-      uuid:
-        specifier: ^9.0.1
-        version: 9.0.1
-    devDependencies:
-      '@kubernetes/client-node':
-        specifier: ^0.18.1
-        version: 0.18.1
-      '@rollup/plugin-typescript':
-        specifier: ^11.1.4
-        version: 11.1.5(rollup@2.79.1)(tslib@2.6.2)(typescript@4.9.5)
-      '@types/js-cookie':
-        specifier: ^3.0.4
-        version: 3.0.6
-      '@types/js-yaml':
-        specifier: ^4.0.6
-        version: 4.0.9
-      '@types/node':
-        specifier: ^20.7.1
-        version: 20.10.0
-      '@types/uuid':
-        specifier: ^9.0.4
-        version: 9.0.7
-      rollup:
-        specifier: 2.79.1
-        version: 2.79.1
-      rollup-plugin-copy:
-        specifier: ^3.5.0
-        version: 3.5.0
-      rollup-plugin-dts:
-        specifier: ^4.2.3
-        version: 4.2.3(rollup@2.79.1)(typescript@4.9.5)
-      tslib:
-        specifier: ^2.6.2
-        version: 2.6.2
 
   packages/driver:
     dependencies:
@@ -545,8 +496,8 @@ importers:
         specifier: 18.2.0
         version: 18.2.0(react@18.2.0)
       sealos-desktop-sdk:
-        specifier: workspace:*
-        version: link:../client-sdk
+        specifier: npm:@labring/sealos-desktop-sdk@0.1.24
+        version: /@labring/sealos-desktop-sdk@0.1.24(@kubernetes/client-node@0.18.1)
       typescript:
         specifier: ^5.9.3
         version: 5.9.3
@@ -610,6 +561,21 @@ importers:
         version: 5.2.2
 
 packages:
+
+  /@labring/sealos-desktop-sdk@0.1.24(@kubernetes/client-node@0.18.1):
+    resolution: {integrity: sha512-FMU/OFu/D65kVjSm/Y65vh25TigK+mWAktLf5sjia0iOoSFjzKfGJuWmJ37B8tg47JNAVMZ99bm4mHw/EQ2lBw==}
+    peerDependencies:
+      '@kubernetes/client-node': ^0.18.1
+    dependencies:
+      '@kubernetes/client-node': 0.18.1
+      axios: 1.7.7
+      dayjs: 1.11.10
+      js-cookie: 3.0.5
+      js-yaml: 4.1.0
+      uuid: 9.0.1
+    transitivePeerDependencies:
+      - debug
+
 
   /@aashutoshrathi/word-wrap@1.2.6:
     resolution: {integrity: sha512-1Yjs2SvM8TflER/OD3cOjhWWOZb58A2t7wpE2S9XfBYTiIl+XFhQG2bjy4Pu1I+EAlCNUzRDYDdFwFYUKvXcIA==}

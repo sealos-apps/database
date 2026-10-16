@@ -16,12 +16,15 @@ class DeploymentCompatibility(unittest.TestCase):
             with self.subTest(source=source), tempfile.TemporaryDirectory() as temp:
                 values = Path(temp) / "values.yaml"
                 values.write_text('dbproviderConfig:\n  cloudDomain: upgrade.example\n'
-                                  '  monitorUrl: "http://preserved-monitor:9090"\n')
+                                  '  monitorUrl: "http://preserved-monitor:9090"\n'
+                                  '  currencySymbol: "usd"\n')
                 result = subprocess.run([
                     "helm", "template", "dbprovider-frontend",
                     str(ROOT / source / "database/deploy/charts/database-frontend"),
                     "--namespace", "dbprovider-frontend", "-f", str(values),
                 ], text=True, capture_output=True, check=True).stdout
+                self.assertNotIn("currencySymbol", result)
+                self.assertNotIn("CURRENCY_SYMBOL", result)
                 self.assertIn("dbprovider.upgrade.example", result)
                 self.assertIn("http://preserved-monitor:9090", result)
                 self.assertIn("name: dbprovider-frontend-config", result)

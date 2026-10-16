@@ -1,3 +1,4 @@
+import { useHostConfigStore } from '@sealos/shared';
 import { theme } from '@/constants/theme';
 import { useConfirm } from '@/hooks/useConfirm';
 import { useLoading } from '@/hooks/useLoading';
@@ -56,6 +57,7 @@ function MyApp({ Component, pageProps, customScripts }: AppProps & AppOwnProps) 
 
   useEffect(() => {
     const response = createSealosApp();
+    void useHostConfigStore.getState().loadHostConfig(() => sealosApp.getHostConfig());
     (async () => {
       const { desktopDomain } = await initSystemEnv();
       try {

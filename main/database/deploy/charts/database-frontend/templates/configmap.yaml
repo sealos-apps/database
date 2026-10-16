@@ -16,7 +16,6 @@ data:
         showDocument: {{ .Values.dbproviderConfig.showDocument }}
         fileImport: {{ .Values.dbproviderConfig.fileImportEnabled }}
       ui:
-        currencySymbol: {{ .Values.dbproviderConfig.currencySymbol | quote }}
         customScripts:
           {{- toYaml .Values.dbproviderConfig.customScripts | nindent 10 }}
       storage:

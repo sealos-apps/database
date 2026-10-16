@@ -1,3 +1,4 @@
+import { useHostConfigStore } from '@sealos/shared';
 import {
   applyYamlList,
   delDBServiceByName,
@@ -121,6 +122,7 @@ const AppBaseInfo = ({ db = defaultDBDetail }: { db: DBDetailType }) => {
   const { t } = useTranslation();
   const { copyData } = useCopyData();
   const config = useClientAppConfig();
+  const currencySymbol = useHostConfigStore((state) => state.currencySymbol);
   const [showSecret, setShowSecret] = useState(false);
   const [isChecked, setIsChecked] = useState(false);
   const { isOpen, onOpen, onClose } = useDisclosure();
@@ -465,7 +467,7 @@ const AppBaseInfo = ({ db = defaultDBDetail }: { db: DBDetailType }) => {
               <Center mt="16px" color={'#24282C'} fontSize={'24px'} fontWeight={600}>
                 <Text mr={'8px'}>{SOURCE_PRICE.nodeports.toFixed(3)}</Text>
                 <CurrencySymbol
-                  type={config.currencySymbol}
+                  type={currencySymbol}
                   shellCoin={{
                     mr: '2px',
                     w: '20px',

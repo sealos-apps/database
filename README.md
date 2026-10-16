@@ -76,3 +76,43 @@ User values are persisted at:
 
 Existing user values are retained. The installer refuses to adopt resources owned
 by a different Helm release. No namespace or database-data migration is performed.
+
+## Currency display upgrade
+
+Both `main/` and `release-v5.1/` now read the display symbol from Sealos Desktop
+HostConfig after SDK initialization. The application and shared UI use the same
+published `@labring/sealos-desktop-sdk@0.1.24` via the `sealos-desktop-sdk` npm alias.
+The duplicated local `packages/client-sdk` workspaces have been removed; SDK
+updates now come from the published package. HostConfig is requested once per page
+lifetime and kept only in memory. Price
+estimates and database details use this shared symbol; pricing, billing units,
+conversions and backend billing are unchanged.
+
+Upgrade Desktop first in environments using `cny` or `usd`, and configure
+`desktop.layout.currencySymbol` there. An older Desktop that omits the field, or a
+failed request (including standalone use), falls back to `shellCoin`. Reload the
+Database page after changing Desktop settings; host configuration is not persisted.
+
+For manually mounted main `config.yaml`, remove `database.ui.currencySymbol`
+**before starting the upgraded Database**, retaining other `database.ui` fields
+such as `customScripts`. The strict configuration schema rejects the obsolete key.
+Chart-generated ConfigMaps already omit it. Remove `dbproviderConfig.currencySymbol`
+from custom values and stop passing the installer variable `currencySymbol` or
+`CURRENCY_SYMBOL` environment variable. Existing persisted Helm values may retain
+the old key harmlessly; it is ignored and no longer injected. The legacy `getEnv`
+response no longer returns `CurrencySymbol`.
+
+No release, namespace, selector, hostname or `dbproviderConfig` contract is renamed.
+
+Local regression checks (install both workspaces with pnpm 8.9.0 first):
+
+```sh
+node --test tests/test_host_config.cjs
+python3 tests/test_deployment_compatibility.py
+pnpm --dir main/database typecheck
+pnpm --dir release-v5.1/database typecheck
+```
+
+Run `helm lint` and `helm template` for each workspace's
+`database/deploy/charts/database-frontend` chart as well. These checks do not replace
+an embedded Desktop integration test.

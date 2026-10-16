@@ -48,9 +48,6 @@ const FeaturesSchema = z.strictObject({
  * UI configuration schema for database.
  */
 const UiSchema = z.strictObject({
-  currencySymbol: z
-    .enum(['shellCoin', 'cny', 'usd'])
-    .describe('Currency symbol type displayed in price components'),
   customScripts: z
     .array(CustomScriptSchema)
     .describe('Custom scripts injected via Next.js <Script> component')
@@ -212,7 +209,6 @@ export type AppConfig = z.infer<typeof AppConfigSchema>;
 export const ClientAppConfigSchema = z.strictObject({
   domain: z.string(),
   desktopDomain: z.string(),
-  currencySymbol: z.enum(['shellCoin', 'cny', 'usd']),
   guideEnabled: z.boolean(),
   showDocument: z.boolean(),
   fileImportEnabled: z.boolean(),

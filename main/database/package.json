@@ -13,9 +13,7 @@
     "test:components": "vitest --project components",
     "test:components:ci": "vitest run --project components",
     "typecheck": "tsc --noEmit",
-    "config:gen-json-schema": "pnpm --silent dlx tsx -e \"import { z } from 'zod'; import { AppConfigSchema as s } from './src/types/config'; console.log(JSON.stringify(z.toJSONSchema(s)));\" > ./data/config.schema.json",
-    "link-sdk": "rm -rf node_modules/sealos-desktop-sdk && yalc link sealos-desktop-sdk",
-    "unlink-sdk": "yalc remove --all && pnpm install sealos-desktop-sdk"
+    "config:gen-json-schema": "pnpm --silent dlx tsx -e \"import { z } from 'zod'; import { AppConfigSchema as s } from './src/types/config'; console.log(JSON.stringify(z.toJSONSchema(s)));\" > ./data/config.schema.json"
   },
   "dependencies": {
     "@chakra-ui/anatomy": "^2.2.1",
@@ -68,7 +66,7 @@
     "react-markdown": "^8.0.7",
     "react-syntax-highlighter": "^15.5.0",
     "sass": "^1.68.0",
-    "sealos-desktop-sdk": "workspace:*",
+    "sealos-desktop-sdk": "npm:@labring/sealos-desktop-sdk@0.1.24",
     "sharp": "^0.32.6",
     "typescript": "^5.2.2",
     "zod": "^4.0.8",

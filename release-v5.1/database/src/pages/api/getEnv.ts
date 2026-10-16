@@ -14,7 +14,6 @@ export type SystemEnvResponse = {
   SHOW_DOCUMENT: boolean;
   DATA_IMPORT_ENABLED: boolean;
   KAFKA_ENABLED: boolean;
-  CurrencySymbol: 'shellCoin' | 'cny' | 'usd';
   STORAGE_MAX_SIZE: number;
   DATAFLOW_ENABLED: boolean;
 };
@@ -42,7 +41,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse<
       SHOW_DOCUMENT: process.env.SHOW_DOCUMENT === 'true',
       DATA_IMPORT_ENABLED: process.env.DATA_IMPORT_ENABLED !== 'false',
       KAFKA_ENABLED: process.env.KAFKA_ENABLED !== 'false',
-      CurrencySymbol: (process.env.CURRENCY_SYMBOL || 'shellCoin') as 'shellCoin' | 'cny' | 'usd',
       STORAGE_MAX_SIZE: Number(process.env.STORAGE_MAX_SIZE) || 300,
       DATAFLOW_ENABLED
     }
