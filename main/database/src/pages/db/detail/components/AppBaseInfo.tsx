@@ -712,12 +712,9 @@ const AppBaseInfo = ({ db = defaultDBDetail }: { db: DBDetailType }) => {
                   {t('direct_connection')}
                 </Center>
               )}
-              {[
-                DBTypeEnum.mysql,
-                DBTypeEnum.notapemysql,
-                DBTypeEnum.postgresql,
-                DBTypeEnum.mongodb
-              ].includes(db.dbType as DBTypeEnum) && (
+              {[DBTypeEnum.mysql, DBTypeEnum.notapemysql, DBTypeEnum.postgresql].includes(
+                db.dbType as DBTypeEnum
+              ) && (
                 <Center
                   className="driver-detail-terminal-button"
                   gap={'6px'}
