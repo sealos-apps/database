@@ -1,7 +1,9 @@
 # Database workspace
 
 This source workspace contains the Database application in `database/` and its
-shared dependencies in `packages/`. Run commands from this directory.
+local UI components in `packages/ui/`. Shared, driver, GTM, and Desktop SDKs
+come from published `@labring` npm packages. The application owns its host-config
+store in `database/src/store/hostConfig.ts`. Run commands from this directory.
 
 ## Development
 

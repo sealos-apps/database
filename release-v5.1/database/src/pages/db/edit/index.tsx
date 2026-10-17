@@ -14,7 +14,7 @@ import { serviceSideProps } from '@/utils/i18n';
 import { json2Account, json2CreateCluster, limitRangeYaml } from '@/utils/json2Yaml';
 import { Box, Flex, useDisclosure } from '@chakra-ui/react';
 import { useMessage } from '@sealos/ui';
-import { track } from '@sealos/gtm';
+import { track } from '@labring/sealos-gtm-sdk';
 import { useQuery } from '@tanstack/react-query';
 import debounce from 'lodash/debounce';
 import { useTranslation } from 'next-i18next';

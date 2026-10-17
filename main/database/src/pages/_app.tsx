@@ -1,4 +1,4 @@
-import { useHostConfigStore } from '@sealos/shared';
+import { useHostConfigStore } from '@/store/hostConfig';
 import { theme } from '@/constants/theme';
 import { useConfirm } from '@/hooks/useConfirm';
 import { useLoading } from '@/hooks/useLoading';
@@ -14,23 +14,23 @@ import Head from 'next/head';
 import Router, { useRouter } from 'next/router';
 import NProgress from 'nprogress';
 import { useEffect, useState, useCallback, ComponentProps } from 'react';
-import { EVENT_NAME } from 'sealos-desktop-sdk';
-import { createSealosApp, sealosApp } from 'sealos-desktop-sdk/app';
-import '@sealos/driver/src/driver.css';
+import { EVENT_NAME } from '@labring/sealos-desktop-sdk';
+import { createSealosApp, sealosApp } from '@labring/sealos-desktop-sdk/app';
+import '@labring/sealos-driver-sdk/src/driver.css';
 import '@/styles/reset.scss';
 import 'nprogress/nprogress.css';
 import Script from 'next/script';
 import App from 'next/app';
 import { useUserStore } from '@/store/user';
-import { RybbitScript } from '@sealos/gtm';
+import { RybbitScript } from '@labring/sealos-gtm-sdk';
 import {
   ClientConfigProvider,
   prefetchClientAppConfig,
   setupClientAppConfigDefaults
-} from '@sealos/shared';
-import { InsufficientQuotaDialog } from '@sealos/shared/chakra';
+} from '@labring/sealos-shared-sdk';
+import { InsufficientQuotaDialog } from '@/components/InsufficientQuotaDialog';
 import { useClientAppConfig } from '@/hooks/useClientAppConfig';
-import { QuotaGuardProvider, type SupportedLang } from '@sealos/shared';
+import { QuotaGuardProvider, type SupportedLang } from '@labring/sealos-shared-sdk';
 
 //Binding events.
 Router.events.on('routeChangeStart', () => NProgress.start());

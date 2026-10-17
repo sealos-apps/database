@@ -16,10 +16,10 @@ import {
   ModalOverlay
 } from '@chakra-ui/react';
 import { useMessage } from '@sealos/ui';
-import { track } from '@sealos/gtm';
+import { track } from '@labring/sealos-gtm-sdk';
 import { useTranslation } from 'next-i18next';
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { sealosApp } from 'sealos-desktop-sdk/app';
+import { sealosApp } from '@labring/sealos-desktop-sdk/app';
 
 enum Page {
   REMINDER = 'REMINDER',

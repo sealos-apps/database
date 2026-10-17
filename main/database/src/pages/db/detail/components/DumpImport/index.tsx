@@ -12,7 +12,7 @@ import FileSelect from '@/components/FileSelect';
 import MyIcon from '@/components/Icon';
 import { DBDetailType } from '@/types/db';
 import { DumpForm } from '@/types/migrate';
-import { useQuotaGuarded } from '@sealos/shared';
+import { useQuotaGuarded } from '@labring/sealos-shared-sdk';
 import { assembleTranslate } from '@/utils/i18n-client';
 
 import {

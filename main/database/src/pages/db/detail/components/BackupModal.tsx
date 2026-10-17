@@ -4,7 +4,7 @@ import Tip from '@/components/Tip';
 import { DBBackupMethodNameMap, DBTypeEnum, SelectTimeList, WeekSelectList } from '@/constants/db';
 import { useConfirm } from '@/hooks/useConfirm';
 import type { AutoBackupFormType, AutoBackupType } from '@/types/backup';
-import { useQuotaGuarded } from '@sealos/shared';
+import { useQuotaGuarded } from '@labring/sealos-shared-sdk';
 import { convertCronTime, getErrText } from '@/utils/tools';
 import { InfoOutlineIcon } from '@chakra-ui/icons';
 import {

@@ -22,7 +22,7 @@ import { useTranslation } from 'next-i18next';
 import dynamic from 'next/dynamic';
 import { useRouter } from 'next/router';
 import React, { Dispatch, useCallback, useState } from 'react';
-import { sealosApp } from 'sealos-desktop-sdk/app';
+import { sealosApp } from '@labring/sealos-desktop-sdk/app';
 import UpdateModal from './UpdateModal';
 import { DATAFLOW_APP_KEY, DATAFLOW_SUPPORTED_TYPES } from '@/constants/dataflow';
 import { ConnectionInfo } from './AppBaseInfo';

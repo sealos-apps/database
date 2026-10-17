@@ -34,7 +34,7 @@ import {
   PopoverTrigger
 } from '@chakra-ui/react';
 import { useMessage } from '@sealos/ui';
-import { track } from '@sealos/gtm';
+import { track } from '@labring/sealos-gtm-sdk';
 import {
   ColumnDef,
   FilterFn,
@@ -48,7 +48,7 @@ import dynamic from 'next/dynamic';
 import { useRouter } from 'next/router';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { getLangStore } from '@/utils/cookieUtils';
-import { sealosApp } from 'sealos-desktop-sdk/app';
+import { sealosApp } from '@labring/sealos-desktop-sdk/app';
 
 import {
   Modal,
@@ -62,7 +62,7 @@ import {
   ModalFooter
 } from '@chakra-ui/react';
 import { setDBRemark } from '@/api/db';
-import { useQuotaGuarded } from '@sealos/shared';
+import { useQuotaGuarded } from '@labring/sealos-shared-sdk';
 
 const DelModal = dynamic(() => import('@/pages/db/detail/components/DelModal'));
 const ErrorModal = dynamic(() => import('@/components/ErrorModal'));

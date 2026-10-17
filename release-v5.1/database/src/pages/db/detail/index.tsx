@@ -6,7 +6,7 @@ import { DBType } from '@/types/db';
 import { serviceSideProps } from '@/utils/i18n';
 import { Box, Flex, Text, useMediaQuery, useTheme } from '@chakra-ui/react';
 import { MyTooltip, useMessage } from '@sealos/ui';
-import { track } from '@sealos/gtm';
+import { track } from '@labring/sealos-gtm-sdk';
 import { useQuery } from '@tanstack/react-query';
 import { useTranslation } from 'next-i18next';
 import { useRouter } from 'next/router';

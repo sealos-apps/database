@@ -1,10 +1,8 @@
 'use client';
 
-import { useHostConfigStore } from '../../../store/hostConfig';
-import { InsufficientQuotaDialogView } from './InsufficientQuotaDialogView';
-import { useQuotaStore } from '../../../store/quota';
-import { useQuotaGuardConfig } from '../../../hooks/QuotaGuardProvider';
-import type { SupportedLang } from '../../../i18n/quota-dialog';
+import { useHostConfigStore } from '@/store/hostConfig';
+import { InsufficientQuotaDialogView } from '@labring/sealos-shared-sdk/chakra';
+import { useQuotaStore, useQuotaGuardConfig, type SupportedLang } from '@labring/sealos-shared-sdk';
 
 export interface InsufficientQuotaDialogProps {
   /** Language for dialog content */
