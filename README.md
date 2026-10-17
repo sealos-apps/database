@@ -81,9 +81,10 @@ by a different Helm release. No namespace or database-data migration is performe
 
 Both `main/` and `release-v5.1/` now read the display symbol from Sealos Desktop
 HostConfig after SDK initialization. The application and shared UI use the same
-published `@labring/sealos-desktop-sdk@0.1.24` via the `sealos-desktop-sdk` npm alias.
-The duplicated local `packages/client-sdk` workspaces have been removed; SDK
-updates now come from the published package. HostConfig is requested once per page
+published `@labring/sealos-desktop-sdk@0.1.24` directly.
+Only `packages/ui` remains local. Shared (`1.0.3`), driver (`1.0.0`), GTM (`1.1.0`),
+and Desktop SDKs come from npm. Each application owns its host-config store; main
+also owns the quota-dialog adapter that reuses this store. HostConfig is requested once per page
 lifetime and kept only in memory. Price
 estimates and database details use this shared symbol; pricing, billing units,
 conversions and backend billing are unchanged.

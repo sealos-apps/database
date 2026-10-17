@@ -1,4 +1,4 @@
-import { useHostConfigStore } from '@sealos/shared';
+import { useHostConfigStore } from '@/store/hostConfig';
 import { SOURCE_PRICE } from '@/store/static';
 import { I18nCommonKey } from '@/types/i18next';
 import { Box, Flex, useTheme, Text, Center } from '@chakra-ui/react';

@@ -1,4 +1,4 @@
-import type { HostConfig } from 'sealos-desktop-sdk';
+import type { HostConfig } from '@labring/sealos-desktop-sdk';
 import { create } from 'zustand';
 
 type HostConfigState = {

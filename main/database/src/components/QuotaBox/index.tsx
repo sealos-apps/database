@@ -3,7 +3,11 @@ import { Box, Flex, useTheme, Progress, css, Text } from '@chakra-ui/react';
 import { useTranslation } from 'next-i18next';
 import { MyTooltip } from '@sealos/ui';
 
-import { useUserQuota, resourcePropertyMap, formatResourceQuotaValue } from '@sealos/shared';
+import {
+  useUserQuota,
+  resourcePropertyMap,
+  formatResourceQuotaValue
+} from '@labring/sealos-shared-sdk';
 
 const sourceMap = {
   cpu: {

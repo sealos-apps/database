@@ -1,6 +1,6 @@
 'client';
 import yaml from 'js-yaml';
-import { SessionV1 } from 'sealos-desktop-sdk/*';
+import { SessionV1 } from '@labring/sealos-desktop-sdk/*';
 
 export const getUserKubeConfig = () => {
   let kubeConfig: string =

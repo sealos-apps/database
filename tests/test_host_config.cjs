@@ -21,7 +21,7 @@ function loadTypeScript(filename, workspace, mocks = {}) {
 
 for (const workspace of ['main', 'release-v5.1']) {
   const { createHostConfigStore } = loadTypeScript(
-    resolve(workspace, 'packages/shared/src/store/hostConfig.ts'), workspace
+    resolve(workspace, 'database/src/store/hostConfig.ts'), workspace
   );
   const host = { cloud: { domain: 'example.com', port: '', regionUid: 'test' },
     features: { subscription: false } };
@@ -76,25 +76,12 @@ test('main: mounted config accepts removed currency field only after migration',
   assert.equal(AppConfigSchema.safeParse(config).success, false);
 });
 
-test('v5.1: SDK pod quota extension preserves supported quota values', async () => {
-  const supported = ['cpu', 'memory', 'storage', 'gpu', 'traffic', 'nodeport'].map(
-    type => ({ type, used: 2, limit: 10 })
-  );
-  const { useQuotaStore } = loadTypeScript(
-    resolve('release-v5.1/packages/shared/src/store/quota.ts'), 'release-v5.1',
-    { 'sealos-desktop-sdk/app': { sealosApp: {
-      getWorkspaceQuota: async () => ({ quota: [...supported, { type: 'pod', used: 1, limit: 3 }] })
-    } } }
-  );
-  assert.deepEqual(await useQuotaStore.getState().fetchUserQuota(), supported);
-});
-
 for (const workspace of ['main', 'release-v5.1']) {
   test(`${workspace}: application and shared UI resolve the same published SDK`, () => {
     const appRequire = createRequire(resolve(workspace, 'database/package.json'));
-    const sharedRequire = createRequire(resolve(workspace, 'packages/shared/package.json'));
-    assert.equal(appRequire.resolve('sealos-desktop-sdk/app'), sharedRequire.resolve('sealos-desktop-sdk/app'));
-    const sdkPackage = JSON.parse(readFileSync(resolve(dirname(appRequire.resolve('sealos-desktop-sdk/app')), '../package.json'), 'utf8'));
+    const sharedRequire = createRequire(appRequire.resolve('@labring/sealos-shared-sdk'));
+    assert.equal(appRequire.resolve('@labring/sealos-desktop-sdk/app'), sharedRequire.resolve('@labring/sealos-desktop-sdk/app'));
+    const sdkPackage = JSON.parse(readFileSync(resolve(dirname(appRequire.resolve('@labring/sealos-desktop-sdk/app')), '../package.json'), 'utf8'));
     assert.equal(sdkPackage.name, '@labring/sealos-desktop-sdk');
     assert.equal(sdkPackage.version, '0.1.24');
   });

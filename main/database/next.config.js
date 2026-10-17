@@ -17,7 +17,13 @@ const nextConfig = {
     config.plugins = [...config.plugins];
     return config;
   },
-  transpilePackages: ['@sealos/ui', 'sealos-desktop-sdk', '@sealos/driver'],
+  transpilePackages: [
+    '@sealos/ui',
+    '@labring/sealos-desktop-sdk',
+    '@labring/sealos-driver-sdk',
+    '@labring/sealos-shared-sdk',
+    '@labring/sealos-gtm-sdk'
+  ],
   experimental: {
     // this includes files from the workspace root one directory up
     outputFileTracingRoot: path.join(__dirname, '../'),

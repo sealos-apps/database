@@ -12,7 +12,7 @@ dayjs.extend(timezone);
 import yaml from 'js-yaml';
 import ini from 'ini';
 import { DBType, PodDetailType } from '@/types/db';
-import { BinaryScale, Quantity } from '@sealos/shared';
+import { BinaryScale, Quantity } from '@labring/sealos-shared-sdk';
 
 export const formatTime = (time: string | number | Date, format = 'YYYY-MM-DD HH:mm:ss') => {
   return dayjs(time).tz('Asia/Shanghai').format(format);

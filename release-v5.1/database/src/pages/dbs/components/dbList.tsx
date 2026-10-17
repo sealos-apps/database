@@ -34,7 +34,7 @@ import {
   Badge
 } from '@chakra-ui/react';
 import { useMessage } from '@sealos/ui';
-import { track } from '@sealos/gtm';
+import { track } from '@labring/sealos-gtm-sdk';
 import {
   ColumnDef,
   FilterFn,
@@ -49,7 +49,7 @@ import { useRouter } from 'next/router';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { getLangStore } from '@/utils/cookieUtils';
 import { I18nCommonKey } from '@/types/i18next';
-import { sealosApp } from 'sealos-desktop-sdk/app';
+import { sealosApp } from '@labring/sealos-desktop-sdk/app';
 
 import {
   Modal,
