@@ -50,12 +50,18 @@ async function getLatestVersion(
 
       //map db_type
       let mappedDbType = clusterDefinitionRef;
-      if (clusterDefinitionRef === 'mysql' || clusterDefinitionRef === 'apecloud-mysql') {
+      if (
+        dbType !== 'mysql' &&
+        (clusterDefinitionRef === 'mysql' || clusterDefinitionRef === 'apecloud-mysql')
+      ) {
         mappedDbType = 'apecloud-mysql';
       }
 
       if (mappedDbType === dbType && item?.metadata?.name) {
-        if (dbType === 'apecloud-mysql' && item.metadata.name === 'mysql-8.0.33') {
+        if (
+          (dbType === 'mysql' || dbType === 'apecloud-mysql') &&
+          item.metadata.name === 'mysql-8.0.33'
+        ) {
           return;
         }
         versions.push(item.metadata.name);
@@ -94,7 +100,9 @@ const schema2Raw = (dbForm: z.infer<typeof createDatabaseSchemas.body>): DBEditT
   const terminationPolicy = dbForm.terminationPolicy!;
 
   return {
-    dbType: dbForm.type,
+    // Release uses apecloud-mysql internally for both MySQL families. Its YAML
+    // builder selects the native MySQL 5.7 template from the requested version.
+    dbType: dbForm.type === 'mysql' ? DBTypeEnum.mysql : dbForm.type,
     dbVersion: version,
     dbName: dbForm.name,
     replicas: resources.replicas,
