@@ -117,3 +117,27 @@ pnpm --dir release-v5.1/database typecheck
 Run `helm lint` and `helm template` for each workspace's
 `database/deploy/charts/database-frontend` chart as well. These checks do not replace
 an embedded Desktop integration test.
+
+## Sealox compatibility on release-v5.1
+
+The release workspace exposes public `GET /api/platform/getClientAppConfig`
+with `{ code: 200, data: { storageMaxSize: number } }`, using the existing
+`STORAGE_MAX_SIZE` environment variable (default 300 GiB). This is the subset
+needed by Sealox's database creation form, not the full main configuration API.
+The legacy `/api/getEnv` remains available.
+
+`POST /api/v2alpha/databases` also accepts `type: "mysql"`. The creation service
+maps it to release's internal `apecloud-mysql` type so existing account,
+parameter, and automatic backup handling is reused. The requested version still
+selects the release template (including native `mysql-5.7.42`). When `mysql`
+omits a version, discovery selects a MySQL ClusterVersion, not an ApeCloud
+version. Existing `apecloud-mysql` requests retain their version selection.
+Use versions advertised by the target release deployment; this does not add
+new KubeBlocks engines, ComponentVersion support, or change existing detail
+response types and resource accounting.
+
+Regression check (Kubernetes writes are mocked):
+
+```sh
+node --test tests/test_sealox_compatibility.cjs
+```

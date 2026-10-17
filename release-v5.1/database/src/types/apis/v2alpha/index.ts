@@ -516,6 +516,7 @@ export const document = createDocument({
                       'postgresql',
                       'mongodb',
                       'apecloud-mysql',
+                      'mysql',
                       'redis',
                       'kafka',
                       'qdrant',
@@ -525,7 +526,8 @@ export const document = createDocument({
                       'pulsar',
                       'clickhouse'
                     ],
-                    description: 'Database type/engine to deploy',
+                    description:
+                      'Database type/engine to deploy. mysql is accepted as an alias for the release MySQL implementation; use a version advertised by /api/platform/getVersion.',
                     example: 'postgresql'
                   },
                   version: {
