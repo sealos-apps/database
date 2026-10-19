@@ -6,6 +6,9 @@ import React from 'react';
 (globalThis as any).React = React;
 
 let DBTypeEnum: typeof import('../../../src/constants/db').DBTypeEnum;
+let hasReplicaChange: typeof import('../../../src/utils/database').hasReplicaChange;
+let validatePolarDBXReplicaChange: typeof import('../../../src/utils/database').validatePolarDBXReplicaChange;
+let isPolarDBXReplicaScalingDisabledError: typeof import('../../../src/utils/database').isPolarDBXReplicaScalingDisabledError;
 let adaptDBDetail: typeof import('../../../src/utils/adapt').adaptDBDetail;
 let adaptOperationLog: typeof import('../../../src/utils/adapt').adaptOperationLog;
 let getDatabaseResourceComponentSpec: typeof import('../../../src/utils/adapt').getDatabaseResourceComponentSpec;
@@ -15,6 +18,8 @@ let raw2DatabaseSchema: typeof import('../../../src/services/backend/apis/get-da
 
 test.before(async () => {
   ({ DBTypeEnum } = await import('../../../src/constants/db'));
+  ({ hasReplicaChange, validatePolarDBXReplicaChange, isPolarDBXReplicaScalingDisabledError } =
+    await import('../../../src/utils/database'));
   ({ adaptDBDetail, adaptOperationLog, getDatabaseResourceComponentSpec } = await import(
     '../../../src/utils/adapt'
   ));
@@ -22,6 +27,25 @@ test.before(async () => {
   ({ raw2schema: raw2DatabaseSchema } = await import(
     '../../../src/services/backend/apis/get-database'
   ));
+});
+
+test('rejects PolarDB-X DN replica changes but permits unchanged or omitted replica counts', () => {
+  assert.equal(hasReplicaChange(3), false);
+  assert.equal(hasReplicaChange(3, 3), false);
+  assert.equal(hasReplicaChange(3, 5), true);
+  assert.equal(hasReplicaChange(3, 1), true);
+  assert.doesNotThrow(() => validatePolarDBXReplicaChange(DBTypeEnum.polardbx, 3, 3));
+  assert.doesNotThrow(() => validatePolarDBXReplicaChange(DBTypeEnum.polardbx, 3));
+  assert.throws(
+    () => validatePolarDBXReplicaChange(DBTypeEnum.polardbx, 3, 5),
+    (error: unknown) =>
+      isPolarDBXReplicaScalingDisabledError(error) && /Online PolarDB-X/.test(error.message)
+  );
+  assert.throws(
+    () => validatePolarDBXReplicaChange(DBTypeEnum.polardbx, 3, 1),
+    isPolarDBXReplicaScalingDisabledError
+  );
+  assert.doesNotThrow(() => validatePolarDBXReplicaChange(DBTypeEnum.mongodb, 3, 5));
 });
 
 const component = (

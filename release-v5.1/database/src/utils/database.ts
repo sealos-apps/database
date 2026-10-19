@@ -18,6 +18,33 @@ export const POLARDBX_GMS_MAX_STORAGE = 3;
 export const POLARDBX_COMPONENT_COUNT = 4;
 export const POLARDBX_MIN_CPU = POLARDBX_MIN_COMPONENT_CPU * POLARDBX_COMPONENT_COUNT;
 export const POLARDBX_MIN_MEMORY = POLARDBX_MIN_COMPONENT_MEMORY * POLARDBX_COMPONENT_COUNT;
+export const POLARDBX_REPLICA_SCALING_DISABLED_MESSAGE =
+  'Online PolarDB-X DN replica scaling is disabled until KubeBlocks supports safe replication-group member changes';
+
+export class PolarDBXReplicaScalingDisabledError extends Error {
+  constructor() {
+    super(POLARDBX_REPLICA_SCALING_DISABLED_MESSAGE);
+    this.name = 'PolarDBXReplicaScalingDisabledError';
+  }
+}
+
+export const isPolarDBXReplicaScalingDisabledError = (
+  error: unknown
+): error is PolarDBXReplicaScalingDisabledError =>
+  error instanceof PolarDBXReplicaScalingDisabledError;
+
+export const hasReplicaChange = (currentReplicas: number, requestedReplicas?: number) =>
+  requestedReplicas !== undefined && requestedReplicas !== currentReplicas;
+
+export const validatePolarDBXReplicaChange = (
+  dbType: DBType,
+  currentReplicas: number,
+  requestedReplicas?: number
+) => {
+  if (dbType === DBTypeEnum.polardbx && hasReplicaChange(currentReplicas, requestedReplicas)) {
+    throw new PolarDBXReplicaScalingDisabledError();
+  }
+};
 
 export const validatePolarDBXResources = (data: {
   dbType: DBType;

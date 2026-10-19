@@ -5,6 +5,7 @@ import { getDatabaseSchemas, updateDatabaseSchemas } from '@/types/apis/v2alpha'
 import { updateDatabase } from '@/services/backend/v2alpha/update-database';
 import { getDatabase } from '@/services/backend/v2alpha/get-database';
 import { deleteDatabase } from '@/services/backend/v2alpha/delete-database';
+import { isPolarDBXReplicaScalingDisabledError } from '@/utils/database';
 import {
   sendError,
   sendK8sError,
@@ -95,6 +96,14 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
       return res.status(204).end();
     } catch (err: any) {
+      if (isPolarDBXReplicaScalingDisabledError(err)) {
+        return sendError(res, {
+          status: 400,
+          type: ErrorType.VALIDATION_ERROR,
+          code: ErrorCode.INVALID_VALUE,
+          message: err.message
+        });
+      }
       const body = err?.body ?? err;
       if (body?.code === 404) {
         return sendError(res, {

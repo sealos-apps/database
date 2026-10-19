@@ -17,7 +17,13 @@ import { BackupSupportedDBTypeList } from '@/constants/db';
 import { adaptDBDetail, convertBackupFormToSpec } from '@/utils/adapt';
 import { CustomObjectsApi, KubernetesObject, PatchUtils } from '@kubernetes/client-node';
 import { getScore } from '@/utils/tools';
-import { validatePolarDBXResources } from '@/utils/database';
+import {
+  hasReplicaChange,
+  isPolarDBXReplicaScalingDisabledError,
+  validatePolarDBXReplicaChange,
+  validatePolarDBXResources
+} from '@/utils/database';
+import { ResponseCode } from '@/types/response';
 import {
   ensurePostgreSQLConfigSpec,
   getCurrentParameterValues,
@@ -50,7 +56,10 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse<
       )) as {
         body: KbPgClusterType;
       };
-      const { cpu, memory, replicas, storage, terminationPolicy } = adaptDBDetail(body);
+      const dbDetail = adaptDBDetail(body);
+      const { cpu, memory, replicas, storage, terminationPolicy } = dbDetail;
+
+      validatePolarDBXReplicaChange(dbDetail.dbType, replicas, dbForm.replicas);
 
       const opsRequests = [];
 
@@ -63,7 +72,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse<
         opsRequests.push(verticalScalingYaml);
       }
 
-      if (replicas !== dbForm.replicas) {
+      if (hasReplicaChange(replicas, dbForm.replicas)) {
         const horizontalScalingYaml = json2ResourceOps(
           dbForm,
           'HorizontalScaling',
@@ -269,6 +278,12 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse<
     });
   } catch (err: any) {
     console.log('error create db', err);
+    if (isPolarDBXReplicaScalingDisabledError(err)) {
+      return jsonRes(res, {
+        code: ResponseCode.BAD_REQUEST,
+        message: err.message
+      });
+    }
     jsonRes(res, handleK8sError(err));
   }
 }

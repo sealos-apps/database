@@ -45,6 +45,34 @@ spec:
           env:
             - name: NODE_TLS_REJECT_UNAUTHORIZED
               value: {{ .Values.dbproviderConfig.tlsRejectUnauthorized | quote }}
+            - name: SEALOS_DOMAIN
+              value: {{ .Values.dbproviderConfig.cloudDomain | quote }}
+            - name: DESKTOP_DOMAIN
+              value: {{ .Values.dbproviderConfig.cloudDomain | quote }}
+            - name: SEALOS_PORT
+              value: {{ include "database-frontend.portSuffix" . | quote }}
+            - name: MONITOR_URL
+              value: {{ .Values.dbproviderConfig.monitorUrl | quote }}
+            - name: MIGRATE_FILE_IMAGE
+              value: {{ .Values.dbproviderConfig.migrateFileImage | quote }}
+            - name: BACKUP_ENABLED
+              value: {{ .Values.dbproviderConfig.backupEnabled | quote }}
+            - name: LOG_ENABLED
+              value: {{ .Values.dbproviderConfig.logEnabled | quote }}
+            - name: SHOW_DOCUMENT
+              value: {{ .Values.dbproviderConfig.showDocument | quote }}
+            - name: DATA_IMPORT_ENABLED
+              value: {{ .Values.dbproviderConfig.dataImportEnabled | quote }}
+            - name: GUIDE_ENABLED
+              value: {{ .Values.dbproviderConfig.guideEnabled | quote }}
+            - name: KAFKA_ENABLED
+              value: {{ .Values.dbproviderConfig.kafkaEnabled | quote }}
+            - name: BILLING_URL
+              value: {{ .Values.dbproviderConfig.billingUrl | quote }}
+            - name: MANAGED_DB_ENABLED
+              value: {{ .Values.dbproviderConfig.managedDbEnabled | quote }}
+            - name: VLOGS_BASE_URL
+              value: {{ .Values.dbproviderConfig.vlogsBaseUrl | quote }}
           startupProbe:
             {{- toYaml .Values.startupProbe | nindent 12 }}
           readinessProbe:

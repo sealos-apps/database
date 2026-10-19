@@ -768,6 +768,12 @@ const Form = ({
                   value={getValues('replicas')}
                   min={1}
                   max={20}
+                  isDisabled={isEdit && getValues('dbType') === DBTypeEnum.polardbx}
+                  hoverText={
+                    isEdit && getValues('dbType') === DBTypeEnum.polardbx
+                      ? t('polardbx_replica_scaling_disabled')
+                      : undefined
+                  }
                   step={
                     getValues('dbType') === DBTypeEnum.mongodb ||
                     getValues('dbType') === DBTypeEnum.mysql ||
@@ -835,7 +841,11 @@ const Form = ({
                   <Tip
                     ml={4}
                     icon={<InfoOutlineIcon />}
-                    text={t('polardbx_replica_rule_tip')}
+                    text={
+                      isEdit
+                        ? t('polardbx_replica_scaling_disabled')
+                        : t('polardbx_replica_rule_tip')
+                    }
                     size="sm"
                     borderRadius={'md'}
                     maxWidth={360}
