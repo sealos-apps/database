@@ -1,0 +1,136 @@
+/*
+ * Copyright 2026 Clidey, Inc.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+package mongodb
+
+import (
+	"context"
+	"fmt"
+	"net/url"
+	"strconv"
+	"strings"
+	"time"
+
+	"github.com/clidey/whodb/core/src/common"
+	"github.com/clidey/whodb/core/src/engine"
+	"github.com/clidey/whodb/core/src/log"
+	"github.com/clidey/whodb/core/src/plugins/ssl"
+	"go.mongodb.org/mongo-driver/mongo"
+	"go.mongodb.org/mongo-driver/mongo/options"
+)
+
+// DefaultOperationTimeout is the default timeout for MongoDB operations.
+const DefaultOperationTimeout = 30 * time.Second
+
+// opCtx returns a context with a timeout for MongoDB operations.
+func opCtx() (context.Context, context.CancelFunc) {
+	return context.WithTimeout(context.Background(), DefaultOperationTimeout)
+}
+
+// disconnectClient disconnects a MongoDB client using a fresh short-lived context,
+func disconnectClient(client *mongo.Client) {
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+	client.Disconnect(ctx)
+}
+
+func DB(config *engine.PluginConfig) (*mongo.Client, error) {
+	ctx, cancel := opCtx()
+	defer cancel()
+	port, err := strconv.Atoi(common.GetRecordValueOrDefault(config.Credentials.Advanced, "Port", "27017"))
+	if err != nil {
+		log.WithError(err).WithFields(map[string]any{
+			"hostname":  config.Credentials.Hostname,
+			"portValue": common.GetRecordValueOrDefault(config.Credentials.Advanced, "Port", "27017"),
+		}).Error("Failed to parse MongoDB port number")
+		return nil, err
+	}
+	queryParams := common.GetRecordValueOrDefault(config.Credentials.Advanced, "URL Params", "")
+	dnsEnabled, err := strconv.ParseBool(common.GetRecordValueOrDefault(config.Credentials.Advanced, "DNS Enabled", "false"))
+	if err != nil {
+		log.WithError(err).WithFields(map[string]any{
+			"hostname":        config.Credentials.Hostname,
+			"dnsEnabledValue": common.GetRecordValueOrDefault(config.Credentials.Advanced, "DNS Enabled", "false"),
+		}).Error("Failed to parse MongoDB DNS enabled flag")
+		return nil, err
+	}
+
+	connectionURI := strings.Builder{}
+	clientOptions := options.Client()
+
+	if dnsEnabled {
+		connectionURI.WriteString("mongodb+srv://")
+		connectionURI.WriteString(fmt.Sprintf("%s/", config.Credentials.Hostname))
+	} else {
+		connectionURI.WriteString("mongodb://")
+		connectionURI.WriteString(fmt.Sprintf("%s:%d/", config.Credentials.Hostname, port))
+	}
+
+	connectionURI.WriteString(config.Credentials.Database)
+	connectionURI.WriteString(queryParams)
+
+	clientOptions.ApplyURI(connectionURI.String())
+	clientOptions.SetMaxPoolSize(10)
+	clientOptions.SetMinPoolSize(2)
+	clientOptions.SetMaxConnIdleTime(5 * time.Minute)
+	if config.Credentials.Username != "" || config.Credentials.Password != "" {
+		clientOptions.SetAuth(options.Credential{
+			Username: url.QueryEscape(config.Credentials.Username),
+			Password: url.QueryEscape(config.Credentials.Password),
+		})
+	}
+
+	// Configure SSL/TLS
+	sslMode := "disabled"
+	sslConfig := ssl.ParseSSLConfig(engine.DatabaseType_MongoDB, config.Credentials.Advanced, config.Credentials.Hostname, config.Credentials.IsProfile)
+	if sslConfig != nil && sslConfig.IsEnabled() {
+		sslMode = string(sslConfig.Mode)
+		tlsConfig, err := ssl.BuildTLSConfig(sslConfig, config.Credentials.Hostname)
+		if err != nil {
+			log.WithError(err).WithFields(map[string]any{
+				"hostname": config.Credentials.Hostname,
+				"sslMode":  sslConfig.Mode,
+			}).Error("Failed to build TLS configuration for MongoDB")
+			return nil, err
+		}
+		if tlsConfig != nil {
+			clientOptions.SetTLSConfig(tlsConfig)
+		}
+	}
+
+	client, err := mongo.Connect(ctx, clientOptions)
+	if err != nil {
+		log.WithError(err).WithFields(map[string]any{
+			"hostname":   config.Credentials.Hostname,
+			"database":   config.Credentials.Database,
+			"username":   config.Credentials.Username,
+			"dnsEnabled": dnsEnabled,
+			"port":       port,
+			"sslMode":    sslMode,
+		}).Error("Failed to connect to MongoDB")
+		return nil, err
+	}
+	err = client.Ping(ctx, nil)
+	if err != nil {
+		log.WithError(err).WithFields(map[string]any{
+			"hostname": config.Credentials.Hostname,
+			"database": config.Credentials.Database,
+			"username": config.Credentials.Username,
+		}).Error("Failed to ping MongoDB server")
+		return nil, err
+	}
+	return client, nil
+}

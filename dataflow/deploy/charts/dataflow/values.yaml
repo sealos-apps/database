@@ -1,0 +1,134 @@
+global:
+  kb: "0.8" #0.8/0.9
+
+replicaCount: 1
+
+image:
+  repository: ghcr.io/sealos-apps/dataflow/dataflow
+  pullPolicy: IfNotPresent
+  tag: latest
+
+deploymentStrategy:
+  type: RollingUpdate
+  rollingUpdate:
+    maxSurge: 1
+    maxUnavailable: 0
+
+imagePullSecrets: []
+nameOverride: ''
+fullnameOverride: ''
+
+cloudDomain: '127.0.0.1.nip.io'
+
+dataflowConfig:
+  embeddedAllowedOrigins: []
+
+session:
+  encryptionKey: 'replace-with-32-byte-secret-key!'
+  ttl: 24h
+  bootstrapEnabled: true
+
+secret:
+  create: true
+  existingSecret: ''
+
+runtime:
+  logLevel: info
+  logFormat: json
+
+metadata:
+  dsn: ''
+  sessionDsn: ''
+
+  native:
+    enabled: true
+    clusterName: ''
+    replicas: 1
+    storage: 3Gi
+    resources:
+      limits:
+        cpu: 1000m
+        memory: 1024Mi
+      requests:
+        cpu: 10m
+        memory: 50Mi
+
+extraEnvs: []
+
+serviceAccount:
+  create: true
+  automount: false
+  annotations: {}
+  name: ''
+
+podAnnotations: {}
+podLabels: {}
+
+podSecurityContext: {}
+securityContext: {}
+
+service:
+  type: ClusterIP
+  port: 8080
+
+ingress:
+  enabled: true
+  className: nginx
+  host: ''
+  hostPrefix: dataflow
+  annotations:
+    nginx.ingress.kubernetes.io/proxy-read-timeout: '3600'
+    nginx.ingress.kubernetes.io/proxy-send-timeout: '3600'
+
+app:
+  enabled: false
+  namespace: app-system
+  name: dataflow
+  type: iframe
+  displayType: hidden
+  urlScheme: https
+  iconPath: /favicon.svg
+  hostOverride: ''
+  data:
+    desc: Sealos-native database workspace
+  i18n:
+    en:
+      name: DataFlow
+    zh:
+      name: 数据库管理
+    zh-Hans:
+      name: 数据库管理
+
+resources:
+  requests:
+    cpu: 50m
+    memory: 128Mi
+  limits:
+    cpu: 1000m
+    memory: 1024Mi
+
+startupProbe:
+  httpGet:
+    path: /healthz
+    port: http
+  periodSeconds: 5
+  failureThreshold: 24
+  timeoutSeconds: 3
+
+livenessProbe:
+  httpGet:
+    path: /healthz
+    port: http
+  initialDelaySeconds: 10
+  periodSeconds: 10
+
+readinessProbe:
+  httpGet:
+    path: /healthz
+    port: http
+  initialDelaySeconds: 10
+  periodSeconds: 10
+
+nodeSelector: {}
+tolerations: []
+affinity: {}

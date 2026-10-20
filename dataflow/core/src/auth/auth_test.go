@@ -1,0 +1,399 @@
+/*
+ * Copyright 2026 Clidey, Inc.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+package auth
+
+import (
+	"bytes"
+	"context"
+	"encoding/base64"
+	"encoding/json"
+	"net/http"
+	"net/http/httptest"
+	"os"
+	"strings"
+	"testing"
+	"time"
+
+	"github.com/clidey/whodb/core/src/engine"
+	"github.com/clidey/whodb/core/src/env"
+	"github.com/clidey/whodb/core/src/session"
+	"gorm.io/driver/sqlite"
+	"gorm.io/gorm"
+)
+
+func TestIsPublicRouteAllowsIntrospectionInDev(t *testing.T) {
+	originalDev := env.IsDevelopment
+	env.IsDevelopment = true
+	t.Cleanup(func() {
+		env.IsDevelopment = originalDev
+	})
+
+	req := httptest.NewRequest(http.MethodPost, "/api/query", bytes.NewBufferString(`{"query":"IntrospectionQuery"}`))
+	if !isPublicRoute(req) {
+		t.Fatalf("expected introspection query to be treated as public route in development")
+	}
+}
+
+func TestIsPublicRouteBlocksWhenNotDev(t *testing.T) {
+	originalDev := env.IsDevelopment
+	env.IsDevelopment = false
+	t.Cleanup(func() {
+		env.IsDevelopment = originalDev
+	})
+
+	req := httptest.NewRequest(http.MethodPost, "/api/query", bytes.NewBufferString(`{"query":"IntrospectionQuery"}`))
+	if isPublicRoute(req) {
+		t.Fatalf("expected introspection query to require auth outside development")
+	}
+}
+
+func TestAuthMiddlewareExtractsCredentialsFromBearer(t *testing.T) {
+	originalDev := env.IsDevelopment
+	originalGateway := env.IsAPIGatewayEnabled
+	env.IsDevelopment = false
+	env.IsAPIGatewayEnabled = false
+	t.Cleanup(func() {
+		env.IsDevelopment = originalDev
+		env.IsAPIGatewayEnabled = originalGateway
+	})
+
+	creds := engine.Credentials{
+		Type:     "Postgres",
+		Hostname: "db.local",
+		Username: "alice",
+		Password: "pw",
+		Database: "app",
+	}
+	payload, err := json.Marshal(&creds)
+	if err != nil {
+		t.Fatalf("failed to marshal credentials: %v", err)
+	}
+	token := base64.StdEncoding.EncodeToString(payload)
+
+	req := httptest.NewRequest(http.MethodPost, "/api/query", strings.NewReader(`{"operationName":"Other"}`))
+	req.Header.Set("Authorization", "Bearer "+token)
+	rr := httptest.NewRecorder()
+
+	var captured *engine.Credentials
+	handler := AuthMiddleware(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		captured = GetCredentials(r.Context())
+		w.WriteHeader(http.StatusOK)
+	}))
+
+	handler.ServeHTTP(rr, req)
+
+	if rr.Code != http.StatusOK {
+		t.Fatalf("expected request to pass through middleware, got status %d", rr.Code)
+	}
+
+	if captured == nil || captured.Username != "alice" || captured.Database != "app" {
+		t.Fatalf("expected credentials to be populated from bearer token, got %+v", captured)
+	}
+}
+
+func TestAuthMiddlewareRejectsMissingToken(t *testing.T) {
+	originalDev := env.IsDevelopment
+	env.IsDevelopment = false
+	t.Cleanup(func() {
+		env.IsDevelopment = originalDev
+	})
+
+	req := httptest.NewRequest(http.MethodPost, "/api/query", strings.NewReader(`{"operationName":"Other"}`))
+	rr := httptest.NewRecorder()
+
+	handler := AuthMiddleware(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusOK)
+	}))
+
+	handler.ServeHTTP(rr, req)
+
+	if rr.Code != http.StatusUnauthorized {
+		t.Fatalf("expected unauthorized status for missing token, got %d", rr.Code)
+	}
+}
+
+func TestAuthMiddlewarePreservesAdvancedOptions(t *testing.T) {
+	originalDev := env.IsDevelopment
+	originalGateway := env.IsAPIGatewayEnabled
+	env.IsDevelopment = false
+	env.IsAPIGatewayEnabled = false
+	t.Cleanup(func() {
+		env.IsDevelopment = originalDev
+		env.IsAPIGatewayEnabled = originalGateway
+	})
+
+	creds := engine.Credentials{
+		Type:     "Postgres",
+		Hostname: "db.local",
+		Username: "alice",
+		Password: "pw",
+		Database: "app",
+		Advanced: []engine.Record{
+			{Key: "SSL Mode", Value: "verify-ca"},
+			{Key: "SSL CA Certificate Path", Value: "/path/to/ca.crt"},
+		},
+	}
+	payload, err := json.Marshal(&creds)
+	if err != nil {
+		t.Fatalf("failed to marshal credentials: %v", err)
+	}
+	token := base64.StdEncoding.EncodeToString(payload)
+
+	req := httptest.NewRequest(http.MethodPost, "/api/query", strings.NewReader(`{"operationName":"Other"}`))
+	req.Header.Set("Authorization", "Bearer "+token)
+	rr := httptest.NewRecorder()
+
+	var captured *engine.Credentials
+	handler := AuthMiddleware(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		captured = GetCredentials(r.Context())
+		w.WriteHeader(http.StatusOK)
+	}))
+
+	handler.ServeHTTP(rr, req)
+
+	if rr.Code != http.StatusOK {
+		t.Fatalf("expected request to pass through middleware, got status %d", rr.Code)
+	}
+
+	if captured == nil {
+		t.Fatal("expected credentials to be populated")
+	}
+
+	if len(captured.Advanced) != 2 {
+		t.Fatalf("expected 2 advanced options, got %d", len(captured.Advanced))
+	}
+
+	if captured.Advanced[0].Key != "SSL Mode" || captured.Advanced[0].Value != "verify-ca" {
+		t.Fatalf("expected SSL Mode=verify-ca, got %s=%s", captured.Advanced[0].Key, captured.Advanced[0].Value)
+	}
+
+	if captured.Advanced[1].Key != "SSL CA Certificate Path" {
+		t.Fatalf("expected SSL CA Certificate Path, got %s", captured.Advanced[1].Key)
+	}
+}
+
+func TestAuthMiddlewareDecodesLoginCredentialsFormat(t *testing.T) {
+	// This test verifies that credentials marshaled from model.LoginCredentials format
+	// (with capitalized JSON field names) are correctly unmarshaled into engine.Credentials
+	originalDev := env.IsDevelopment
+	originalGateway := env.IsAPIGatewayEnabled
+	env.IsDevelopment = false
+	env.IsAPIGatewayEnabled = false
+	t.Cleanup(func() {
+		env.IsDevelopment = originalDev
+		env.IsAPIGatewayEnabled = originalGateway
+	})
+
+	// This JSON matches the format produced by model.LoginCredentials (GraphQL input)
+	loginPayload := `{
+		"Type": "Postgres",
+		"Hostname": "db.local",
+		"Username": "alice",
+		"Password": "pw",
+		"Database": "app",
+		"Advanced": [
+			{"Key": "SSL Mode", "Value": "verify-ca"},
+			{"Key": "SSL CA Certificate Path", "Value": "/path/to/ca.crt"}
+		]
+	}`
+	token := base64.StdEncoding.EncodeToString([]byte(loginPayload))
+
+	req := httptest.NewRequest(http.MethodPost, "/api/query", strings.NewReader(`{"operationName":"Other"}`))
+	req.Header.Set("Authorization", "Bearer "+token)
+	rr := httptest.NewRecorder()
+
+	var captured *engine.Credentials
+	handler := AuthMiddleware(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		captured = GetCredentials(r.Context())
+		w.WriteHeader(http.StatusOK)
+	}))
+
+	handler.ServeHTTP(rr, req)
+
+	if rr.Code != http.StatusOK {
+		t.Fatalf("expected request to pass through middleware, got status %d", rr.Code)
+	}
+
+	if captured == nil {
+		t.Fatal("expected credentials to be populated")
+	}
+
+	if len(captured.Advanced) != 2 {
+		t.Fatalf("expected 2 advanced options, got %d: %+v", len(captured.Advanced), captured.Advanced)
+	}
+
+	if captured.Advanced[0].Key != "SSL Mode" || captured.Advanced[0].Value != "verify-ca" {
+		t.Fatalf("expected SSL Mode=verify-ca, got %s=%s", captured.Advanced[0].Key, captured.Advanced[0].Value)
+	}
+}
+
+func TestIsAllowedPermitsWhitelistedOperations(t *testing.T) {
+	body := `{"operationName":"Login","variables":{}}`
+	req := httptest.NewRequest(http.MethodPost, "/api/query", strings.NewReader(body))
+	if !isAllowed(req, []byte(body)) {
+		t.Fatalf("expected Login operation to be allowed without auth")
+	}
+
+	getDb := `{"operationName":"GetDatabase","variables":{"type":"Sqlite3"}}`
+	req = httptest.NewRequest(http.MethodPost, "/api/query", strings.NewReader(getDb))
+	if !isAllowed(req, []byte(getDb)) {
+		t.Fatalf("expected GetDatabase for Sqlite3 to be allowed")
+	}
+
+	denied := `{"operationName":"GetDatabase","variables":{"type":"Postgres"}}`
+	req = httptest.NewRequest(http.MethodPost, "/api/query", strings.NewReader(denied))
+	if isAllowed(req, []byte(denied)) {
+		t.Fatalf("expected GetDatabase for non-sqlite to be rejected")
+	}
+
+	bootstrap := `{"operationName":"BootstrapSealosSession","variables":{}}`
+	req = httptest.NewRequest(http.MethodPost, "/api/query", strings.NewReader(bootstrap))
+	if !isAllowed(req, []byte(bootstrap)) {
+		t.Fatalf("expected BootstrapSealosSession to be allowed without auth")
+	}
+
+	identity := `{"operationName":"ResolveSealosInstanceIdentity","variables":{}}`
+	req = httptest.NewRequest(http.MethodPost, "/api/query", strings.NewReader(identity))
+	if !isAllowed(req, []byte(identity)) {
+		t.Fatalf("expected ResolveSealosInstanceIdentity to be allowed without auth")
+	}
+
+	standalone := `{"operationName":"CreateStandaloneSession","variables":{}}`
+	req = httptest.NewRequest(http.MethodPost, "/api/query", strings.NewReader(standalone))
+	if !isAllowed(req, []byte(standalone)) {
+		t.Fatalf("expected CreateStandaloneSession to be allowed without auth")
+	}
+}
+
+func TestAuthMiddlewareRejectsSessionRevokedForReplacedInstance(t *testing.T) {
+	service := newAuthSessionServiceForTest(t)
+	_, token, err := service.Create(context.Background(), session.CreateParams{
+		Source:       "sealos",
+		Namespace:    "ns-demo",
+		ResourceName: "my-db",
+		InstanceUID:  "old-uid",
+		DBType:       "Postgres",
+		Host:         "db.ns.svc",
+		Port:         "5432",
+		DatabaseName: "postgres",
+		Credentials: &engine.Credentials{
+			Type: "Postgres", Hostname: "db.ns.svc", Username: "alice", Password: "pw", Database: "postgres",
+		},
+	})
+	if err != nil {
+		t.Fatalf("create old instance session: %v", err)
+	}
+	if err := service.RevokeStaleSealosSessions(context.Background(), "ns-demo", "my-db", "current-uid"); err != nil {
+		t.Fatalf("revoke replaced instance session: %v", err)
+	}
+
+	req := httptest.NewRequest(http.MethodPost, "/api/query", strings.NewReader(`{"operationName":"Other"}`))
+	req.Header.Set("Authorization", "Bearer session:"+token)
+	rr := httptest.NewRecorder()
+	handlerCalled := false
+
+	AuthMiddleware(http.HandlerFunc(func(http.ResponseWriter, *http.Request) {
+		handlerCalled = true
+	})).ServeHTTP(rr, req)
+
+	if rr.Code != http.StatusUnauthorized {
+		t.Fatalf("expected revoked replacement token to return 401, got %d", rr.Code)
+	}
+	if handlerCalled {
+		t.Fatal("expected revoked replacement token not to reach the GraphQL handler")
+	}
+}
+
+func TestAuthMiddlewareExtractsCredentialsFromSessionToken(t *testing.T) {
+	service := newAuthSessionServiceForTest(t)
+	record, token, err := service.Create(context.Background(), session.CreateParams{
+		Source:       "sealos",
+		Namespace:    "ns-demo",
+		ResourceName: "my-db",
+		DBType:       "Postgres",
+		Host:         "db.ns.svc",
+		Port:         "5432",
+		DatabaseName: "postgres",
+		Credentials: &engine.Credentials{
+			Type:     "Postgres",
+			Hostname: "db.ns.svc",
+			Username: "alice",
+			Password: "pw",
+			Database: "postgres",
+			Advanced: []engine.Record{{Key: "Port", Value: "5432"}},
+		},
+	})
+	if err != nil {
+		t.Fatalf("create session: %v", err)
+	}
+	if record == nil {
+		t.Fatalf("expected session metadata to be returned")
+	}
+
+	req := httptest.NewRequest(http.MethodPost, "/api/query", strings.NewReader(`{"operationName":"Other"}`))
+	req.Header.Set("Authorization", "Bearer session:"+token)
+	req.Header.Set("X-WhoDB-Database", "analytics")
+	rr := httptest.NewRecorder()
+
+	var captured *engine.Credentials
+	handler := AuthMiddleware(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		captured = GetCredentials(r.Context())
+		w.WriteHeader(http.StatusOK)
+	}))
+
+	handler.ServeHTTP(rr, req)
+
+	if rr.Code != http.StatusOK {
+		t.Fatalf("expected request to pass through middleware, got status %d", rr.Code)
+	}
+	if captured == nil {
+		t.Fatal("expected credentials to be set")
+	}
+	if captured.Username != "alice" || captured.Database != "analytics" {
+		t.Fatalf("expected session credentials with database override, got %+v", captured)
+	}
+}
+
+func newAuthSessionServiceForTest(t *testing.T) *session.Service {
+	t.Helper()
+
+	db, err := gorm.Open(sqlite.Open("file::memory:?cache=shared"), &gorm.Config{})
+	if err != nil {
+		t.Fatalf("open sqlite db: %v", err)
+	}
+
+	service, err := session.NewService(db, "12345678901234567890123456789012", 24*time.Hour)
+	if err != nil {
+		t.Fatalf("new session service: %v", err)
+	}
+
+	t.Setenv("WHODB_SESSION_ENCRYPTION_KEY", "12345678901234567890123456789012")
+	t.Setenv("WHODB_SESSION_TTL", "24h")
+	t.Setenv("WHODB_METADATA_DSN", "")
+	t.Setenv("WHODB_SESSION_DSN", "")
+	t.Setenv("WHODB_SEALOS_BOOTSTRAP_ENABLED", "true")
+
+	originalFactory := session.DefaultServiceFactory
+	session.DefaultServiceFactory = func() (*session.Service, error) { return service, nil }
+	t.Cleanup(func() {
+		session.DefaultServiceFactory = originalFactory
+		session.ResetDefaultService()
+		os.Unsetenv("WHODB_SESSION_ENCRYPTION_KEY")
+	})
+
+	return service
+}

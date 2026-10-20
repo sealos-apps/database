@@ -1,0 +1,143 @@
+#!/usr/bin/env bash
+#
+# Copyright 2026 Clidey, Inc.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#
+
+set -euo pipefail
+
+# Unified backend test runner for CE, EE, and integration.
+# - Uses a repo-local GOCACHE to avoid sandboxed cache permission issues
+# - Runs CE unit tests (excludes interactive server_test)
+# - Runs EE tests when the ee module is present
+# - Runs live integration tests (docker-compose) by default; set MODE to limit
+#   MODE values: all (default) | unit | integration | ssl
+
+ROOT_DIR="$(cd -- "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+GOCACHE_DIR="$ROOT_DIR/core/.gocache"
+
+export GOCACHE="$GOCACHE_DIR"
+MODE="${1:-all}"
+
+run_unit() {
+  echo "→ Running CE backend tests"
+  (
+    cd "$ROOT_DIR/core"
+    go test ./src/... ./graph/...
+  )
+
+  if [ -d "$ROOT_DIR/ee" ]; then
+    echo "→ Running EE backend tests (ee build tag)"
+    (
+      cd "$ROOT_DIR/ee"
+      go test -tags ee ./core/...
+    )
+  else
+    echo "ℹ️ EE module not found; skipping EE backend tests"
+  fi
+}
+
+run_integration() {
+  (
+    set -euo pipefail
+    echo "→ Running integration backend tests (docker-compose services required)"
+    COMPOSE_FILE="$ROOT_DIR/dev/docker-compose.yml"
+    MANAGE_COMPOSE="${WHODB_MANAGE_COMPOSE:-1}"
+    COMPOSE_STARTED=0
+
+    cleanup() {
+      if [ "$MANAGE_COMPOSE" = "1" ] && [ "$COMPOSE_STARTED" -eq 1 ]; then
+        echo "→ Tearing down integration docker-compose stack"
+        docker compose -f "$COMPOSE_FILE" down --volumes --remove-orphans
+      fi
+    }
+    trap cleanup EXIT
+
+    if [ "$MANAGE_COMPOSE" = "1" ]; then
+      if docker compose -f "$COMPOSE_FILE" ps -q | grep -q .; then
+        echo "ℹ️  Reusing existing docker-compose stack"
+      else
+        echo "🐳 Starting integration docker-compose stack"
+        docker compose -f "$COMPOSE_FILE" up -d
+        COMPOSE_STARTED=1
+      fi
+    else
+      echo "ℹ️  WHODB_MANAGE_COMPOSE=0, assuming services are already running"
+    fi
+
+    cd "$ROOT_DIR/core"
+    # If we started compose ourselves, don't start again inside tests.
+    START_FLAG="${WHODB_START_COMPOSE:-}"
+    if [ "$COMPOSE_STARTED" -eq 1 ]; then
+      START_FLAG="0"
+    fi
+    WHODB_START_COMPOSE="${START_FLAG:-0}" go test -tags integration ./test/integration/...
+  )
+}
+
+run_ssl() {
+  (
+    set -euo pipefail
+    echo "→ Running SSL integration tests (docker-compose ssl profile required)"
+    COMPOSE_FILE="$ROOT_DIR/dev/docker-compose.yml"
+    MANAGE_COMPOSE="${WHODB_MANAGE_COMPOSE:-1}"
+    COMPOSE_STARTED=0
+
+    cleanup() {
+      if [ "$MANAGE_COMPOSE" = "1" ] && [ "$COMPOSE_STARTED" -eq 1 ]; then
+        echo "→ Tearing down SSL docker-compose stack"
+        docker compose -f "$COMPOSE_FILE" --profile ssl down --volumes --remove-orphans
+      fi
+    }
+    trap cleanup EXIT
+
+    if [ "$MANAGE_COMPOSE" = "1" ]; then
+      if docker compose -f "$COMPOSE_FILE" --profile ssl ps -q | grep -q .; then
+        echo "ℹ️  Reusing existing SSL docker-compose stack"
+      else
+        echo "🐳 Starting SSL docker-compose stack (profile: ssl)"
+        docker compose -f "$COMPOSE_FILE" --profile ssl up -d
+        COMPOSE_STARTED=1
+        echo "⏳ Waiting for SSL services to be ready..."
+        sleep 10
+      fi
+    else
+      echo "ℹ️  WHODB_MANAGE_COMPOSE=0, assuming SSL services are already running"
+    fi
+
+    cd "$ROOT_DIR/core"
+    WHODB_SSL_TESTS=1 go test -tags integration -v -run "SSL" ./test/integration/...
+  )
+}
+
+case "$MODE" in
+  all)
+    run_unit
+    run_integration
+    ;;
+  unit)
+    run_unit
+    ;;
+  integration)
+    run_integration
+    ;;
+  ssl)
+    run_ssl
+    ;;
+  *)
+    echo "Unknown MODE: $MODE"
+    echo "Usage: $(basename "$0") [all|unit|integration|ssl]"
+    exit 1
+    ;;
+esac
