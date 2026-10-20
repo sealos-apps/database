@@ -30,6 +30,7 @@ export const RangeInput = ({
 }) => {
   const { getInputProps, getIncrementButtonProps, getDecrementButtonProps } = useNumberInput({
     focusInputOnChange: false,
+    isDisabled,
     step,
     min,
     max,
@@ -65,11 +66,13 @@ export const RangeInput = ({
         <IconButton
           icon={<MinusIcon />}
           aria-label="minus"
+          isDisabled={isDisabled}
           color={+input.value <= min ? 'blackAlpha.400' : 'blackAlpha.700'}
           {...dec}
           {...IconStyle}
         />
         <Input
+          isDisabled={isDisabled}
           variant={'unstyled'}
           textAlign={'center'}
           fontSize={'lg'}
@@ -80,6 +83,7 @@ export const RangeInput = ({
         <IconButton
           icon={<AddIcon />}
           aria-label="add"
+          isDisabled={isDisabled}
           color={+input.value >= max ? 'blackAlpha.400' : 'blackAlpha.700'}
           {...inc}
           {...IconStyle}

@@ -227,7 +227,7 @@ const EditApp = ({ dbName, tabType }: { dbName?: string; tabType?: 'form' | 'yam
           error_code: 'APP_ALREADY_EXISTS'
         });
       } else {
-        setErrorMessage(JSON.stringify(error));
+        setErrorMessage(error?.message || JSON.stringify(error));
 
         track('error_occurred', {
           module: 'database',

@@ -19,6 +19,9 @@ export const POLARDBX_COMPONENT_COUNT = 4;
 export const POLARDBX_MIN_CPU = POLARDBX_MIN_COMPONENT_CPU * POLARDBX_COMPONENT_COUNT;
 export const POLARDBX_MIN_MEMORY = POLARDBX_MIN_COMPONENT_MEMORY * POLARDBX_COMPONENT_COUNT;
 
+export const hasReplicaChange = (currentReplicas: number, requestedReplicas?: number) =>
+  requestedReplicas !== undefined && requestedReplicas !== currentReplicas;
+
 export const validatePolarDBXResources = (data: {
   dbType: DBType;
   cpu: number;
