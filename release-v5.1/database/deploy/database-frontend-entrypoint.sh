@@ -106,6 +106,7 @@ SEALOS_CLOUD_DOMAIN=${CONFIG_CLOUD_DOMAIN:-${SEALOS_CLOUD_DOMAIN:-${cloudDomain:
 SEALOS_CLOUD_PORT=${CONFIG_CLOUD_PORT:-${SEALOS_CLOUD_PORT:-${cloudPort:-}}}
 SEALOS_CERT_SECRET_NAME=${CONFIG_CERT_SECRET_NAME:-${SEALOS_CERT_SECRET_NAME:-${certSecretName:-}}}
 
+add_set_string dbproviderConfig.metricsUrl "${metricsUrl:-${METRICS_URL:-}}"
 add_set_string dbproviderConfig.cloudDomain "${SEALOS_CLOUD_DOMAIN}"
 add_set_string dbproviderConfig.cloudPort "${SEALOS_CLOUD_PORT}"
 add_set_string dbproviderConfig.certSecretName "${SEALOS_CERT_SECRET_NAME}"

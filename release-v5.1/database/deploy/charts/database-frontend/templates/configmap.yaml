@@ -10,7 +10,7 @@ data:
     SEALOS_DOMAIN={{ .Values.dbproviderConfig.cloudDomain }}
     DESKTOP_DOMAIN={{ .Values.dbproviderConfig.cloudDomain }}
     SEALOS_PORT={{ include "database-frontend.portSuffix" . }}
-    MONITOR_URL={{ .Values.dbproviderConfig.monitorUrl }}
+    METRICS_URL={{ .Values.dbproviderConfig.metricsUrl }}
     MIGRATE_FILE_IMAGE={{ .Values.dbproviderConfig.migrateFileImage }}
     BACKUP_ENABLED={{ .Values.dbproviderConfig.backupEnabled }}
     LOG_ENABLED={{ .Values.dbproviderConfig.logEnabled }}

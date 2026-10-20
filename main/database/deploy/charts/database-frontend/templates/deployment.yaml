@@ -48,8 +48,8 @@ spec:
               value: {{ .Values.dbproviderConfig.cloudDomain | quote }}
             - name: SEALOS_PORT
               value: {{ include "database-frontend.portEnv" . | quote }}
-            - name: MONITOR_URL
-              value: {{ .Values.dbproviderConfig.monitorUrl | quote }}
+            - name: METRICS_URL
+              value: {{ .Values.dbproviderConfig.metricsUrl | quote }}
             - name: MINIO_URL
               value: {{ .Values.dbproviderConfig.minioUrl | quote }}
             - name: MINIO_ACCESS_KEY

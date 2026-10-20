@@ -33,7 +33,7 @@ SEALOS_DISABLE_HTTPS=${SEALOS_DISABLE_HTTPS:-"${disableHttps:-$(get_cm_value sea
 add_set_string dbproviderConfig.disableHttps "${SEALOS_DISABLE_HTTPS}"
 SEALOS_CERT_SECRET_NAME=${SEALOS_CERT_SECRET_NAME:-"${certSecretName:-$(get_cm_value sealos-system sealos-config certSecretName)}"}
 add_set_string dbproviderConfig.certSecretName "${SEALOS_CERT_SECRET_NAME}"
-add_set_string dbproviderConfig.monitorUrl "${monitorUrl:-}"
+add_set_string dbproviderConfig.metricsUrl "${metricsUrl:-${METRICS_URL:-}}"
 add_set_string dbproviderConfig.minioUrl "${minioUrl:-}"
 add_set_string dbproviderConfig.minioAccessKey "${minioAccessKey:-}"
 add_set_string dbproviderConfig.minioSecretKey "${minioSecretKey:-}"

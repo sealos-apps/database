@@ -1,9 +1,9 @@
 import { authSession } from '@/services/backend/auth';
 import { getK8s } from '@/services/backend/kubernetes';
 import { jsonRes } from '@/services/backend/response';
-import { handleAxiosStream } from '@/services/handleStream';
+import { databaseMonitorFetch } from '@/services/monitorFetch';
 import { ApiResp } from '@/services/kubernet';
-import { AdapterChartDataType, MonitorChartDataResult, MonitorDBResult } from '@/types/monitor';
+import { AdapterChartDataType, MonitorDBResult } from '@/types/monitor';
 import { ResponseCode, ResponseMessages } from '@/types/response';
 import type { NextApiRequest, NextApiResponse } from 'next';
 
@@ -90,15 +90,12 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse<
       step: '1m'
     };
 
-    const result: MonitorChartDataResult = await handleAxiosStream(
-      {
-        url: '/q',
-        params: params
-      },
-      kubeconfig
-    ).then((res) => {
-      // @ts-ignore
-      return AdapterChartData[queryKey] ? AdapterChartData[queryKey](res as MonitorDBResult) : res;
+    const result = await databaseMonitorFetch(params, kubeconfig).then((res) => {
+      const adapter =
+        typeof queryKey === 'string'
+          ? AdapterChartData[queryKey as keyof typeof AdapterChartData]
+          : undefined;
+      return adapter ? adapter(res as MonitorDBResult) : res;
     });
 
     jsonRes(res, {

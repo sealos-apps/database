@@ -141,3 +141,50 @@ Regression check (Kubernetes writes are mocked):
 ```sh
 node --test tests/test_sealox_compatibility.cjs
 ```
+
+## Direct metrics SDK
+
+Both source workspaces use `@labring/sealos-metrics-sdk@0.2.0` in server-side
+monitoring routes. Database templates use `database.query`; existing custom
+PromQL uses `raw.query`. API authentication and chart conversions remain in the
+application. The SDK additionally checks Kubernetes readiness and permission to
+get Pods in the requested namespace. Clients are created per request and are
+never shared across users. The frontend no longer calls `database-monitor`.
+
+The metrics endpoint must expose Prometheus `/api/v1/query` and
+`/api/v1/query_range`, for example the default VictoriaMetrics endpoint:
+`http://vmselect-vm-stack-victoria-metrics-k8s-stack.vm.svc.cluster.local:8481/select/0/prometheus`.
+
+- Helm: set `dbproviderConfig.metricsUrl` in persisted user values or pass
+  `--set-string dbproviderConfig.metricsUrl=<endpoint>` to Helm. Both charts
+  inject `METRICS_URL`; main also writes `database.components.monitoring.url`
+  in its mounted `config.yaml`.
+- Install script: supply `metricsUrl=<endpoint>` or `METRICS_URL=<endpoint>`;
+  `metricsUrl` takes precedence. The default is the endpoint above.
+- Local runtime: configure `METRICS_URL` in `database/.env.local` (see
+  `database/.env.template`). Main falls back to
+  `database.components.monitoring.url` in `data/config.yaml`; release-v5.1 falls
+  back to the SDK's default endpoint above.
+
+On upgrade, replace custom `dbproviderConfig.monitorUrl` with `metricsUrl` and
+point it at the metrics backend, not the old monitor proxy. `MONITOR_URL`, the
+installer variable `monitorUrl`, and the Helm value `monitorUrl` are no longer
+used. Existing persisted values are retained, so add `metricsUrl` explicitly if
+your cluster uses a non-default endpoint. For a manually mounted main
+`config.yaml`, change `database.components.monitoring.url` to the direct metrics
+endpoint. Keep the old service available for any other consumers until they
+have migrated.
+
+In a Pod, Kubernetes service discovery supplies the API server address used by
+the SDK. For local development, the SDK's `WHITELIST_KUBERNETES_HOSTS` environment
+variable can allow the exact API server URL from your kubeconfig; without an
+allowlist the SDK uses `KUBERNETES_SERVICE_HOST` / `KUBERNETES_SERVICE_PORT`.
+Do not allow arbitrary user-supplied API servers in a hosted deployment.
+
+Offline integration checks use fictional local HTTP fixtures and never contact
+a cluster or write database data:
+
+```sh
+node --test tests/test_metrics_sdk.cjs
+python3 tests/test_deployment_compatibility.py
+```

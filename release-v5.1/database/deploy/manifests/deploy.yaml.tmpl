@@ -44,8 +44,8 @@ spec:
               value: {{ .cloudDomain }}
             - name: SEALOS_PORT
               value: "{{ if .cloudPort }}:{{ .cloudPort }}{{ end }}"
-            - name: MONITOR_URL
-              value: {{ .monitorUrl }}
+            - name: METRICS_URL
+              value: {{ .metricsUrl }}
             - name: MINIO_URL
               value: {{ .minioUrl }}
             - name: MINIO_ACCESS_KEY

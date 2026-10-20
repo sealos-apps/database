@@ -38,7 +38,9 @@ dbproviderConfig:
   httpPort: ""
   disableHttps: false
   certSecretName: "wildcard-cert"
-  monitorUrl: "http://database-monitor.sealos.svc.cluster.local:9090"
+  # Direct Prometheus-compatible endpoint (not database-monitor).
+  # Override via user values or --set-string dbproviderConfig.metricsUrl=<endpoint>.
+  metricsUrl: "http://vmselect-vm-stack-victoria-metrics-k8s-stack.vm.svc.cluster.local:8481/select/0/prometheus"
   minioUrl: ""
   minioAccessKey: ""
   minioSecretKey: ""
