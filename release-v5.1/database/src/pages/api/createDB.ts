@@ -19,11 +19,8 @@ import { CustomObjectsApi, KubernetesObject, PatchUtils } from '@kubernetes/clie
 import { getScore } from '@/utils/tools';
 import {
   hasReplicaChange,
-  isPolarDBXReplicaScalingDisabledError,
-  validatePolarDBXReplicaChange,
   validatePolarDBXResources
 } from '@/utils/database';
-import { ResponseCode } from '@/types/response';
 import {
   ensurePostgreSQLConfigSpec,
   getCurrentParameterValues,
@@ -58,8 +55,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse<
       };
       const dbDetail = adaptDBDetail(body);
       const { cpu, memory, replicas, storage, terminationPolicy } = dbDetail;
-
-      validatePolarDBXReplicaChange(dbDetail.dbType, replicas, dbForm.replicas);
 
       const opsRequests = [];
 
@@ -278,12 +273,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse<
     });
   } catch (err: any) {
     console.log('error create db', err);
-    if (isPolarDBXReplicaScalingDisabledError(err)) {
-      return jsonRes(res, {
-        code: ResponseCode.BAD_REQUEST,
-        message: err.message
-      });
-    }
     jsonRes(res, handleK8sError(err));
   }
 }

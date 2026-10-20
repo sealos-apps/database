@@ -1,12 +1,12 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
+import yaml from 'js-yaml';
 import React from 'react';
 
 (globalThis as any).React = React;
 
 let updateV1: typeof import('../../../src/services/backend/apis/update-database').updateDatabase;
 let updateV2: typeof import('../../../src/services/backend/v2alpha/update-database').updateDatabase;
-let isPolarDBXReplicaScalingDisabledError: typeof import('../../../src/utils/database').isPolarDBXReplicaScalingDisabledError;
 
 test.before(async () => {
   ({ updateDatabase: updateV1 } = await import(
@@ -15,7 +15,6 @@ test.before(async () => {
   ({ updateDatabase: updateV2 } = await import(
     '../../../src/services/backend/v2alpha/update-database'
   ));
-  ({ isPolarDBXReplicaScalingDisabledError } = await import('../../../src/utils/database'));
 });
 
 const component = (name: string, replicas: number, storage: string) => ({
@@ -74,34 +73,38 @@ const fakeK8s = () => {
   };
 };
 
-const changedReplicaError = (error: unknown) => isPolarDBXReplicaScalingDisabledError(error);
+const appliedOpsRequest = (applied: unknown[][]) => {
+  assert.equal(applied.length, 1);
+  const [yamlDocuments] = applied[0] as [string[]];
+  return yaml.load(yamlDocuments[0]) as any;
+};
 
-test('v1 update rejects PolarDB-X replica changes before creating an OpsRequest', async () => {
+test('v1 update creates a HorizontalScaling OpsRequest for PolarDB-X DN replica changes', async () => {
   const { k8s, applied } = fakeK8s();
 
-  await assert.rejects(
-    () =>
-      updateV1(k8s, {
-        params: { databaseName: 'test-db' },
-        body: { resource: { replicas: 5 } }
-      } as any),
-    changedReplicaError
-  );
-  assert.equal(applied.length, 0);
+  const result = await updateV1(k8s, {
+    params: { databaseName: 'test-db' },
+    body: { resource: { replicas: 5 } }
+  } as any);
+
+  assert.equal(result.message, 'Database update initiated successfully');
+  const opsRequest = appliedOpsRequest(applied);
+  assert.equal(opsRequest.spec.type, 'HorizontalScaling');
+  assert.deepEqual(opsRequest.spec.horizontalScaling, [{ componentName: 'dn-0', replicas: 5 }]);
 });
 
-test('v2alpha update rejects PolarDB-X replica changes before creating an OpsRequest', async () => {
+test('v2alpha update creates a HorizontalScaling OpsRequest for PolarDB-X DN replica changes', async () => {
   const { k8s, applied } = fakeK8s();
 
-  await assert.rejects(
-    () =>
-      updateV2(k8s, {
-        params: { databaseName: 'test-db' },
-        body: { quota: { replicas: 1 } }
-      } as any),
-    changedReplicaError
-  );
-  assert.equal(applied.length, 0);
+  const result = await updateV2(k8s, {
+    params: { databaseName: 'test-db' },
+    body: { quota: { replicas: 1 } }
+  } as any);
+
+  assert.equal(result.message, 'Database update initiated successfully');
+  const opsRequest = appliedOpsRequest(applied);
+  assert.equal(opsRequest.spec.type, 'HorizontalScaling');
+  assert.deepEqual(opsRequest.spec.horizontalScaling, [{ componentName: 'dn-0', replicas: 1 }]);
 });
 
 test('v1 update treats an omitted PolarDB-X replica count as a no-op', async () => {

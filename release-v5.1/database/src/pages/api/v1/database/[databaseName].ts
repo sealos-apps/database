@@ -7,7 +7,6 @@ import { getDatabaseSchemas, updateDatabaseSchemas } from '@/types/apis';
 import { updateDatabase } from '@/services/backend/apis/update-database';
 import { getDatabase } from '@/services/backend/apis/get-database';
 import { deleteDatabase } from '@/services/backend/apis/delete-database';
-import { isPolarDBXReplicaScalingDisabledError } from '@/utils/database';
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   const kubeconfig = await authSession(req).catch(() => null);
@@ -86,12 +85,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
       return jsonRes(res, result);
     } catch (err: any) {
-      if (isPolarDBXReplicaScalingDisabledError(err)) {
-        return jsonRes(res, {
-          code: ResponseCode.BAD_REQUEST,
-          message: err.message
-        });
-      }
       const errorResponse = handleK8sError(err);
       return jsonRes(res, errorResponse);
     }

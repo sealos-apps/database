@@ -5,7 +5,7 @@ import { updateDatabaseSchemas } from '@/types/apis';
 import z from 'zod';
 import { getK8s } from '../kubernetes';
 import * as yaml from 'js-yaml';
-import { hasReplicaChange, validatePolarDBXReplicaChange } from '@/utils/database';
+import { hasReplicaChange } from '@/utils/database';
 
 const schema2Raw = (currentData: any, updateResource: any) => {
   console.log('Update - Original input resources:', updateResource);
@@ -112,8 +112,6 @@ export async function updateDatabase(
     const currentMemoryNum = dbDetail.memory / 1024;
     const currentStorageNum = dbDetail.storage;
     const currentReplicas = currentSpec?.replicas || dbDetail.replicas;
-
-    validatePolarDBXReplicaChange(dbDetail.dbType, currentReplicas, resource.replicas);
 
     console.log('Current resources in user format:', {
       currentCpu: currentCpuNum,
