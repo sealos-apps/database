@@ -1,5 +1,8 @@
 #!/usr/bin/env bash
 set -euo pipefail
+# Disable Apple's copyfile metadata when staging on macOS. This is a packaging
+# invariant, not an operator setting; inherited values must not enable it.
+export COPYFILE_DISABLE=1
 source_tree="${1:?Usage: prepare-bundle.sh <main|release-v5.1> <output-dir> <database-image> <dataflow-image> <tag>}"
 output_dir="${2:?output directory is required}"
 database_image="${3:?database image is required}"
@@ -25,3 +28,6 @@ ruby -ryaml -e '  p = ARGV[0]; d = YAML.load_file(p); d["image"]["repository"] =
 # Pass pins independently of persisted values recovered from an older release.
 printf 'export DATAFLOW_IMAGE_REPOSITORY=%q\nexport DATAFLOW_IMAGE_TAG=%q\n' "$dataflow_image" "$tag" > "$output_dir/dataflow/image.env"
 printf 'export DATABASE_RUNTIME_IMAGE=%q\n' "${database_image}:${tag}" > "$output_dir/database/image.env"
+# Also remove metadata already present in source copies (including Linux builds).
+# Helm treats AppleDouble ._*.yaml files as templates and cannot parse them.
+find "$output_dir" -type f \( -name '._*' -o -name '.DS_Store' \) -delete

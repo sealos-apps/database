@@ -114,6 +114,34 @@ else:
                     self.assertIn('kind: App', rendered)
                     self.assertIn('http://dataflow.dataflow-system.svc.cluster.local:8080/healthz', rendered)
 
+    def test_packages_exclude_macos_metadata(self):
+        # Pollute an isolated source tree with the binary YAML that broke Helm
+        # on Cluster 62, without modifying the real checkout.
+        fixture = self.work / 'source'
+        for path in ('scripts/prepare-bundle.sh', 'deploy/Kubefile', 'deploy/install.sh',
+                     'dataflow/deploy/install.sh', 'dataflow/deploy/charts',
+                     'main/database/deploy', 'release-v5.1/database/deploy'):
+            src, dst = ROOT / path, fixture / path
+            dst.parent.mkdir(parents=True, exist_ok=True)
+            if src.is_dir():
+                shutil.copytree(src, dst)
+            else:
+                shutil.copy2(src, dst)
+        for chart in fixture.glob('**/charts/*'):
+            (chart / '.DS_Store').write_bytes(b'\x00Finder metadata')
+            (chart / 'templates/._test-connection.yaml').write_bytes(b'\x00\x05AppleDouble')
+        for source in ('main', 'release-v5.1'):
+            bundle = self.work / f'clean-{source}'
+            subprocess.run(['bash', str(fixture / 'scripts/prepare-bundle.sh'), source,
+                            str(bundle), 'test/frontend', 'test/dataflow', 'test'],
+                           env=dict(os.environ, COPYFILE_DISABLE='0'), check=True)
+            self.assertFalse(list(bundle.rglob('._*')))
+            self.assertFalse(list(bundle.rglob('.DS_Store')))
+            for chart in (bundle / 'charts').iterdir():
+                subprocess.run(['helm', 'template', chart.name, str(chart),
+                                '-f', str(chart / f'{chart.name}-values.yaml')],
+                               check=True, stdout=subprocess.DEVNULL)
+
     def test_combined_installer_stops_if_dataflow_fails(self):
         bundle = self.work / 'bundle'
         bundle.mkdir()
