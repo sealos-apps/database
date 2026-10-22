@@ -48,7 +48,7 @@ for (const workspace of ['main', 'release-v5.1']) {
     const address = `http://127.0.0.1:${server.address().port}`;
     const previous = { METRICS_URL: process.env.METRICS_URL,
       WHITELIST_KUBERNETES_HOSTS: process.env.WHITELIST_KUBERNETES_HOSTS };
-    process.env.METRICS_URL = address;
+    process.env.METRICS_URL = workspace === 'main' ? 'http://unused-env.invalid' : address;
     process.env.WHITELIST_KUBERNETES_HOSTS = address;
     t.after(() => { for (const [key, value] of Object.entries(previous)) {
       if (value === undefined) delete process.env[key]; else process.env[key] = value;
@@ -58,7 +58,11 @@ for (const workspace of ['main', 'release-v5.1']) {
       users: [{ name: 'fixture', user: { token } }],
       contexts: [{ name: 'fixture', context: { cluster: 'fixture', user: 'fixture', namespace: 'ns-demo' } }],
       'current-context': 'fixture' });
-    const helper = loadHelper(workspace);
+    const helper = loadHelper(workspace, 'services/monitorFetch.ts', {
+      '@/config': { Config: () => ({
+        database: { components: { monitoring: { url: address } } }
+      }) }
+    });
     const result = await helper.databaseMonitorFetch({ namespace: 'ns-demo', app: 'demo',
       type: 'postgresql', query: 'cpu', start: 0, end: 60, step: '1m' }, kubeconfig('allowed'));
     assert.deepEqual(result.data.result[0].values, [[0, '12.5']]);

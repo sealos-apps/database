@@ -62,11 +62,6 @@ app.kubernetes.io/instance: {{ .Release.Name }}
 {{- if $port -}}:{{ $port }}{{- end -}}
 {{- end }}
 
-{{- define "database-frontend.portEnv" -}}
-{{- $port := include "database-frontend.port" . -}}
-{{- if $port -}}:{{ $port }}{{- end -}}
-{{- end }}
-
 {{- define "database-frontend.cloudOrigin" -}}
 {{- include "database-frontend.scheme" . -}}://{{ .Values.dbproviderConfig.cloudDomain }}{{ include "database-frontend.portSuffix" . }}
 {{- end }}

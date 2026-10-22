@@ -20,7 +20,7 @@ const requireString = (value: unknown, name: string): string => {
 const createClient = (kubeconfig: string) =>
   new MetricsClient({
     kubeconfig,
-    metricsURL: process.env.METRICS_URL || Config().database.components.monitoring.url
+    metricsURL: Config().database.components.monitoring.url
   });
 
 export const databaseMonitorFetch = (params: MonitorParams, kubeconfig: string) => {

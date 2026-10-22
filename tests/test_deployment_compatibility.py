@@ -27,7 +27,10 @@ class DeploymentCompatibility(unittest.TestCase):
                 self.assertNotIn("CURRENCY_SYMBOL", result)
                 self.assertIn("dbprovider.upgrade.example", result)
                 self.assertIn("http://preserved-metrics:8481/select/0/prometheus", result)
-                self.assertIn("METRICS_URL", result)
+                if source == "main":
+                    self.assertNotIn("          env:", result)
+                else:
+                    self.assertIn("METRICS_URL", result)
                 self.assertNotIn("MONITOR_URL", result)
                 self.assertNotIn("database-monitor", result)
                 self.assertIn("name: dbprovider-frontend-config", result)

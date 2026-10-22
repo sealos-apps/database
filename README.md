@@ -155,16 +155,19 @@ The metrics endpoint must expose Prometheus `/api/v1/query` and
 `/api/v1/query_range`, for example the default VictoriaMetrics endpoint:
 `http://vmselect-vm-stack-victoria-metrics-k8s-stack.vm.svc.cluster.local:8481/select/0/prometheus`.
 
-- Helm: set `dbproviderConfig.metricsUrl` in persisted user values or pass
-  `--set-string dbproviderConfig.metricsUrl=<endpoint>` to Helm. Both charts
-  inject `METRICS_URL`; main also writes `database.components.monitoring.url`
-  in its mounted `config.yaml`.
-- Install script: supply `metricsUrl=<endpoint>` or `METRICS_URL=<endpoint>`;
-  `metricsUrl` takes precedence. The default is the endpoint above.
-- Local runtime: configure `METRICS_URL` in `database/.env.local` (see
-  `database/.env.template`). Main falls back to
-  `database.components.monitoring.url` in `data/config.yaml`; release-v5.1 falls
-  back to the SDK's default endpoint above.
+- Main: application settings come from the ConfigMap mounted at
+  `/app/data/config.yaml`. Set `dbproviderConfig.metricsUrl` in persisted Helm
+  user values or pass `--set-string dbproviderConfig.metricsUrl=<endpoint>`;
+  the chart writes `database.components.monitoring.url`. The install script
+  also accepts `metricsUrl=<endpoint>`. The default is the endpoint above.
+  For local development, copy `main/database/data/config.example.yaml` to
+  `main/database/data/config.local.yaml` and edit the same setting.
+  Restart the application after changing the mounted configuration.
+- Release-v5.1: the chart injects `METRICS_URL`. The install script accepts
+  `metricsUrl=<endpoint>` or `METRICS_URL=<endpoint>`, with `metricsUrl` taking
+  precedence. For local development, configure `METRICS_URL` in
+  `release-v5.1/database/.env.local` (see its `.env.template`); otherwise the
+  SDK uses the default endpoint above.
 
 On upgrade, replace custom `dbproviderConfig.monitorUrl` with `metricsUrl` and
 point it at the metrics backend, not the old monitor proxy. `MONITOR_URL`, the
