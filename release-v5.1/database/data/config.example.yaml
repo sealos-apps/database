@@ -1,0 +1,41 @@
+# Copy to config.local.yaml for local development.
+cloud:
+  domain: "127.0.0.1.nip.io"
+  desktopDomain: "127.0.0.1.nip.io"
+  port: ""
+  disableHttps: false
+database:
+  features:
+    guide: true
+    showDocument: true
+    fileImport: false
+    logs: false
+    kafka: true
+    managedDb: false
+  ui:
+    customScripts: []
+  storage:
+    forcedClassName: ""
+    maxSize: 300
+  components:
+    monitoring:
+      url: "http://vmselect-vm-stack-victoria-metrics-k8s-stack.vm.svc.cluster.local:8481/select/0/prometheus"
+    alerting:
+      url: "http://database-alert.sealos.svc:8000"
+    billing:
+      url: "http://account-service.account-system.svc:2333"
+    logging:
+      url: ""
+    storage:
+      url: ""
+      port: 443
+      useSSL: true
+      bucketName: "database-test"
+      accessKey: ""
+      secretKey: ""
+    eventAnalysis:
+      fastGPTKey: ""
+  migration:
+    importDataImage: ""
+  backup:
+    enabled: true

@@ -106,6 +106,29 @@ SEALOS_CLOUD_DOMAIN=${CONFIG_CLOUD_DOMAIN:-${SEALOS_CLOUD_DOMAIN:-${cloudDomain:
 SEALOS_CLOUD_PORT=${CONFIG_CLOUD_PORT:-${SEALOS_CLOUD_PORT:-${cloudPort:-}}}
 SEALOS_CERT_SECRET_NAME=${CONFIG_CERT_SECRET_NAME:-${SEALOS_CERT_SECRET_NAME:-${certSecretName:-}}}
 
+# These installer inputs populate the structured ConfigMap; existing user values remain valid.
+add_set_string dbproviderConfig.disableHttps "${disableHttps:-${DISABLE_HTTPS:-}}"
+add_set_string dbproviderConfig.guideEnabled "${guideEnabled:-${GUIDE_ENABLED:-}}"
+add_set_string dbproviderConfig.showDocument "${showDocument:-${SHOW_DOCUMENT:-}}"
+add_set_string dbproviderConfig.dataImportEnabled "${dataImportEnabled:-${DATA_IMPORT_ENABLED:-}}"
+add_set_string dbproviderConfig.logEnabled "${logEnabled:-${LOG_ENABLED:-}}"
+add_set_string dbproviderConfig.kafkaEnabled "${kafkaEnabled:-${KAFKA_ENABLED:-}}"
+add_set_string dbproviderConfig.managedDbEnabled "${managedDbEnabled:-${MANAGED_DB_ENABLED:-}}"
+add_set_string dbproviderConfig.forcedStorageClassName "${forcedStorageClassName:-${STORAGE_CLASSNAME:-}}"
+add_set_string dbproviderConfig.storageMaxSize "${storageMaxSize:-${STORAGE_MAX_SIZE:-}}"
+add_set_string dbproviderConfig.alertingUrl "${alertingUrl:-${DATABASE_ALERT_URL:-}}"
+add_set_string dbproviderConfig.billingUrl "${billingUrl:-${BILLING_URL:-}}"
+add_set_string dbproviderConfig.vlogsBaseUrl "${vlogsBaseUrl:-${VLOGS_BASE_URL:-}}"
+add_set_string dbproviderConfig.minioUrl "${minioUrl:-${MINIO_URL:-}}"
+add_set_string dbproviderConfig.minioPort "${minioPort:-${MINIO_PORT:-}}"
+add_set_string dbproviderConfig.minioUseSSL "${minioUseSSL:-${MINIO_USE_SSL:-}}"
+add_set_string dbproviderConfig.minioBucketName "${minioBucketName:-${MINIO_BUCKET_NAME:-}}"
+add_set_string dbproviderConfig.minioAccessKey "${minioAccessKey:-${MINIO_ACCESS_KEY:-}}"
+add_set_string dbproviderConfig.minioSecretKey "${minioSecretKey:-${MINIO_SECRET_KEY:-}}"
+add_set_string dbproviderConfig.eventAnalysisFastGPTKey "${eventAnalysisFastGPTKey:-${FASTGPT_KEY:-}}"
+add_set_string dbproviderConfig.migrateFileImage "${migrateFileImage:-${MIGRATE_FILE_IMAGE:-}}"
+add_set_string dbproviderConfig.backupEnabled "${backupEnabled:-${BACKUP_ENABLED:-}}"
+
 add_set_string dbproviderConfig.metricsUrl "${metricsUrl:-${METRICS_URL:-}}"
 add_set_string dbproviderConfig.cloudDomain "${SEALOS_CLOUD_DOMAIN}"
 add_set_string dbproviderConfig.cloudPort "${SEALOS_CLOUD_PORT}"

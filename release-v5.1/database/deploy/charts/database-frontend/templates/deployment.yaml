@@ -53,10 +53,7 @@ spec:
             {{- toYaml .Values.livenessProbe | nindent 12 }}
           volumeMounts:
             - name: dbprovider-frontend-volume
-              mountPath: /app/database/.env
-              subPath: .env
-            - name: dbprovider-frontend-volume
-              mountPath: /config.yaml
+              mountPath: /app/data/config.yaml
               subPath: config.yaml
       {{- with .Values.affinity }}
       affinity:

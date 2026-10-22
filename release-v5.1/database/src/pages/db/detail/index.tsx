@@ -1,3 +1,4 @@
+import { Config } from '@/config';
 import { useLoading } from '@/hooks/useLoading';
 import { useDBStore } from '@/store/db';
 import useEnvStore from '@/store/env';
@@ -334,7 +335,7 @@ export async function getServerSideProps(context: any) {
   const dbType = context.query?.dbType || '';
   const dbName = context.query?.name || '';
   const queryListType = context.query?.listType || TabEnum.Overview;
-  const dataImportEnabled = process.env.DATA_IMPORT_ENABLED !== 'false';
+  const dataImportEnabled = Config().database.features.fileImport;
   const dataImportSupported =
     ['postgresql', 'apecloud-mysql', 'mongodb', 'redis'].includes(dbType) && dataImportEnabled;
   const listType =

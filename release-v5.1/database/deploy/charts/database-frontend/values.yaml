@@ -64,7 +64,8 @@ ingress:
   host: ""
   annotations: {}
 
-# Keep release-v5.1 env defaults and names. Entrypoint auto-fills cloud values from sealos-config when available.
+# Application settings are rendered into /app/data/config.yaml.
+# Override dbproviderConfig keys in persisted user values or with Helm --set.
 dbproviderConfig:
   cloudDomain: "127.0.0.1.nip.io"
   cloudPort: ""
@@ -74,15 +75,28 @@ dbproviderConfig:
   # Override via user values or --set-string dbproviderConfig.metricsUrl=<endpoint>.
   metricsUrl: "http://vmselect-vm-stack-victoria-metrics-k8s-stack.vm.svc.cluster.local:8481/select/0/prometheus"
   migrateFileImage: ""
-  backupEnabled: "true"
-  logEnabled: "false"
-  showDocument: "true"
-  dataImportEnabled: "false"
-  guideEnabled: "true"
-  kafkaEnabled: "true"
+  backupEnabled: true
+  logEnabled: false
+  showDocument: true
+  dataImportEnabled: false
+  guideEnabled: true
+  kafkaEnabled: true
   billingUrl: "http://account-service.account-system.svc:2333"
-  managedDbEnabled: "false"
+  managedDbEnabled: false
   vlogsBaseUrl: ""
+
+  disableHttps: false
+  customScripts: []
+  forcedStorageClassName: ""
+  storageMaxSize: 300
+  alertingUrl: "http://database-alert.sealos.svc:8000"
+  minioUrl: ""
+  minioPort: 443
+  minioUseSSL: true
+  minioBucketName: "database-test"
+  minioAccessKey: ""
+  minioSecretKey: ""
+  eventAnalysisFastGPTKey: ""
 
 affinity:
   podAntiAffinity:

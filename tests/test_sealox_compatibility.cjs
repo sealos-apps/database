@@ -9,6 +9,8 @@ const root = resolve('release-v5.1/database/src');
 const requireApp = createRequire(resolve('release-v5.1/database/package.json'));
 const ts = requireApp('typescript');
 const yaml = requireApp('js-yaml');
+const config = yaml.load(readFileSync(resolve('release-v5.1/database/data/config.example.yaml'), 'utf8'));
+globalThis.__APP_CONFIG__ = config;
 
 function loader(mocks = {}) {
   const cache = new Map();
@@ -120,19 +122,17 @@ test('release-only polardbx remains accepted; invalid engines are rejected', () 
 test('public config returns the numeric storage limit without authentication or private env', async () => {
   const load = loader();
   const handler = load(resolve(root, 'pages/api/platform/getClientAppConfig.ts')).default;
-  const previous = process.env.STORAGE_MAX_SIZE;
+  const previous = config.database.storage.maxSize;
   try {
-    for (const [value, expected] of [[undefined, 300], ['500', 500]]) {
-      if (value === undefined) delete process.env.STORAGE_MAX_SIZE;
-      else process.env.STORAGE_MAX_SIZE = value;
+    for (const expected of [300, 500]) {
+      config.database.storage.maxSize = expected;
       let response;
       await handler({ headers: {} }, { json: value => { response = value; } });
       assert.equal(response.code, 200);
-      assert.deepEqual(response.data, { storageMaxSize: expected });
+      assert.deepEqual(response.data, { domain: config.cloud.domain, storageMaxSize: expected });
     }
   } finally {
-    if (previous === undefined) delete process.env.STORAGE_MAX_SIZE;
-    else process.env.STORAGE_MAX_SIZE = previous;
+    config.database.storage.maxSize = previous;
   }
 });
 

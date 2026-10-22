@@ -30,7 +30,9 @@ class DeploymentCompatibility(unittest.TestCase):
                 if source == "main":
                     self.assertNotIn("          env:", result)
                 else:
-                    self.assertIn("METRICS_URL", result)
+                    self.assertNotIn("METRICS_URL", result)
+                    self.assertNotIn("subPath: .env", result)
+                    self.assertIn("mountPath: /app/data/config.yaml", result)
                 self.assertNotIn("MONITOR_URL", result)
                 self.assertNotIn("database-monitor", result)
                 self.assertIn("name: dbprovider-frontend-config", result)

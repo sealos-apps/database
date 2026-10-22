@@ -1,3 +1,4 @@
+import { Config } from '@/config';
 import type { NextApiRequest, NextApiResponse } from 'next';
 import { jsonRes } from '@/services/backend/response';
 
@@ -20,7 +21,7 @@ const COSTCENTER_SERVICE_CONFIG_URL =
 const COSTCENTER_CONFIG_TIMEOUT_MS = 5000;
 
 const getCostCenterDomain = () =>
-  process.env.DESKTOP_DOMAIN || process.env.SEALOS_DOMAIN || 'cloud.sealos.io';
+  Config().cloud.desktopDomain || Config().cloud.domain || 'cloud.sealos.io';
 
 const normalizePort = (value: string) => {
   if (!/^\d+$/.test(value)) return '';
@@ -38,11 +39,11 @@ const getExternalConfigUrl = (domain: string, protocol: 'http' | 'https', rawPor
 };
 
 const getCostCenterConfigUrls = () => {
-  const disableHttps = ['true', '1'].includes((process.env.DISABLE_HTTPS || '').toLowerCase());
+  const disableHttps = Config().cloud.disableHttps;
   const protocol = disableHttps ? 'http' : 'https';
   const urls = [
     COSTCENTER_SERVICE_CONFIG_URL,
-    getExternalConfigUrl(getCostCenterDomain(), protocol, process.env.SEALOS_PORT || '')
+    getExternalConfigUrl(getCostCenterDomain(), protocol, Config().cloud.port || '')
   ];
   return [...new Set(urls)];
 };
