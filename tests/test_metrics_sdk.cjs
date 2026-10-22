@@ -90,6 +90,47 @@ for (const workspace of ['main', 'release-v5.1']) {
       assert.deepEqual(output.data.result, { xData: [0], yData: [{ name: 'demo-postgresql-0', data: [12.5] }] });
     }
     const count = requests.filter(r => r.url.pathname.startsWith('/api/v1/query')).length;
+    const requireWorkspace = createRequire(resolve(workspace, 'database/package.json'));
+    // The shared SDK ships TypeScript; transpile it just like the route fixtures.
+    const sharedErrors = loadHelper(workspace,
+      requireWorkspace.resolve('@labring/sealos-shared-sdk/server/v2alpha'));
+    const errors = loadHelper(workspace, 'types/v2alpha/error.ts', {
+      '@labring/sealos-shared-sdk/server/v2alpha': sharedErrors
+    });
+    const monitorRequest = { query: { dbName: 'demo', dbType: 'postgresql', queryKey: 'cpu' } };
+    const callV2Monitor = async (credentials, monitor = helper) => {
+      let status, body;
+      const route = loadHelper(workspace, 'pages/api/v2alpha/monitor/data.ts', {
+        '@/services/backend/auth': { authSession: async () => credentials },
+        '@/services/backend/kubernetes': { getK8s: async () => ({ namespace: 'ns-demo' }) },
+        '@/services/monitorFetch': monitor,
+        '@/types/v2alpha/error': errors
+      }).default;
+      const res = { status: value => { status = value; return res; }, json: value => { body = value; } };
+      await route(monitorRequest, res);
+      return { status, body };
+    };
+    // Exercise the real SDK's access review rejection through the API response serializer.
+    const denied = await callV2Monitor(kubeconfig('denied'));
+    assert.equal(denied.status, 403);
+    assert.equal(denied.body.error.type, errors.ErrorType.AUTHORIZATION_ERROR);
+    assert.equal(denied.body.error.code, errors.ErrorCode.PERMISSION_DENIED);
+    assert.equal(denied.body.data, undefined);
+    const anonymous = await callV2Monitor(null);
+    assert.equal(anonymous.status, 401);
+    assert.equal(anonymous.body.error.code, errors.ErrorCode.AUTHENTICATION_REQUIRED);
+    for (const [message, expectedStatus] of [
+      ['No permission for this namespace', 403],
+      ['Authentication failed: Kubernetes unavailable', 500],
+      ['Metrics query failed', 500]
+    ]) {
+      const result = await callV2Monitor(kubeconfig('allowed'), {
+        databaseMonitorFetch: async () => { throw new Error(message); }
+      });
+      assert.equal(result.status, expectedStatus);
+      assert.equal(result.body.error.code, expectedStatus === 403
+        ? errors.ErrorCode.PERMISSION_DENIED : errors.ErrorCode.INTERNAL_ERROR);
+    }
     await assert.rejects(helper.rawMonitorFetch({ namespace: 'ns-demo', query: 'up{$}' }, kubeconfig('denied')));
     await assert.rejects(helper.rawMonitorFetch({ namespace: 'ns-demo', query: 'up{namespace="other"}' }, kubeconfig('allowed')));
     assert.equal(requests.filter(r => r.url.pathname.startsWith('/api/v1/query')).length, count);

@@ -106,6 +106,18 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse<
       data: { result }
     } as any);
   } catch (error: any) {
+    // SDK 0.2.0 uses plain errors for denied namespace access (wrapped on first check).
+    if (
+      error?.message === 'Authentication failed: No permission for this namespace' ||
+      error?.message === 'No permission for this namespace'
+    ) {
+      return sendError(res, {
+        status: 403,
+        type: ErrorType.AUTHORIZATION_ERROR,
+        code: ErrorCode.PERMISSION_DENIED,
+        message: 'Insufficient permissions to access monitor data in this namespace.'
+      });
+    }
     return sendError(res, {
       status: 500,
       type: ErrorType.INTERNAL_ERROR,
