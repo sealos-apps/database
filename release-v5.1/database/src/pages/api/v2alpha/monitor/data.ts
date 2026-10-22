@@ -1,8 +1,8 @@
 import { authSession } from '@/services/backend/auth';
 import { getK8s } from '@/services/backend/kubernetes';
-import { handleAxiosStream } from '@/services/handleStream';
+import { databaseMonitorFetch } from '@/services/monitorFetch';
 import { ApiResp } from '@/services/kubernet';
-import { AdapterChartDataType, MonitorChartDataResult, MonitorDBResult } from '@/types/monitor';
+import { AdapterChartDataType, MonitorDBResult } from '@/types/monitor';
 import type { NextApiRequest, NextApiResponse } from 'next';
 import { sendError, ErrorType, ErrorCode } from '@/types/v2alpha/error';
 
@@ -93,15 +93,12 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse<
       step: '1m'
     };
 
-    const result: MonitorChartDataResult = await handleAxiosStream(
-      {
-        url: '/q',
-        params: params
-      },
-      kubeconfig
-    ).then((res) => {
-      // @ts-ignore
-      return AdapterChartData[queryKey] ? AdapterChartData[queryKey](res as MonitorDBResult) : res;
+    const result = await databaseMonitorFetch(params, kubeconfig).then((res) => {
+      const adapter =
+        typeof queryKey === 'string'
+          ? AdapterChartData[queryKey as keyof typeof AdapterChartData]
+          : undefined;
+      return adapter ? adapter(res as MonitorDBResult) : res;
     });
 
     return res.status(200).json({
@@ -109,6 +106,18 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse<
       data: { result }
     } as any);
   } catch (error: any) {
+    // SDK 0.2.0 uses plain errors for denied namespace access (wrapped on first check).
+    if (
+      error?.message === 'Authentication failed: No permission for this namespace' ||
+      error?.message === 'No permission for this namespace'
+    ) {
+      return sendError(res, {
+        status: 403,
+        type: ErrorType.AUTHORIZATION_ERROR,
+        code: ErrorCode.PERMISSION_DENIED,
+        message: 'Insufficient permissions to access monitor data in this namespace.'
+      });
+    }
     return sendError(res, {
       status: 500,
       type: ErrorType.INTERNAL_ERROR,

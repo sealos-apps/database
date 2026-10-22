@@ -24,7 +24,7 @@ database:
 
   components:
     monitoring:
-      url: http://database-monitor.sealos.svc.cluster.local:9090
+      url: http://vmselect-vm-stack-victoria-metrics-k8s-stack.vm.svc.cluster.local:8481/select/0/prometheus
     alerting:
       url: http://database-alert-service.sealos.svc.cluster.local:8000
       secret: your-alerting-secret

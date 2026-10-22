@@ -16,7 +16,7 @@ class DeploymentCompatibility(unittest.TestCase):
             with self.subTest(source=source), tempfile.TemporaryDirectory() as temp:
                 values = Path(temp) / "values.yaml"
                 values.write_text('dbproviderConfig:\n  cloudDomain: upgrade.example\n'
-                                  '  monitorUrl: "http://preserved-monitor:9090"\n'
+                                  '  metricsUrl: "http://preserved-metrics:8481/select/0/prometheus"\n'
                                   '  currencySymbol: "usd"\n')
                 result = subprocess.run([
                     "helm", "template", "dbprovider-frontend",
@@ -26,7 +26,13 @@ class DeploymentCompatibility(unittest.TestCase):
                 self.assertNotIn("currencySymbol", result)
                 self.assertNotIn("CURRENCY_SYMBOL", result)
                 self.assertIn("dbprovider.upgrade.example", result)
-                self.assertIn("http://preserved-monitor:9090", result)
+                self.assertIn("http://preserved-metrics:8481/select/0/prometheus", result)
+                if source == "main":
+                    self.assertNotIn("          env:", result)
+                else:
+                    self.assertIn("METRICS_URL", result)
+                self.assertNotIn("MONITOR_URL", result)
+                self.assertNotIn("database-monitor", result)
                 self.assertIn("name: dbprovider-frontend-config", result)
                 self.assertIn("name: dbprovider\n", result)
                 self.assertIn("namespace: dbprovider-frontend", result)
@@ -59,7 +65,7 @@ if pathlib.Path(sys.argv[0]).name == "kubectl":
                 )
             ))
             values = directory / "existing.yaml"
-            content = "dbproviderConfig:\n  monitorUrl: http://preserved-monitor:9090\n"
+            content = "dbproviderConfig:\n  metricsUrl: http://preserved-metrics:8481/select/0/prometheus\n"
             values.write_text(content)
             env = os.environ.copy()
             # Ensure host/session variables cannot influence fixture deployment identity.

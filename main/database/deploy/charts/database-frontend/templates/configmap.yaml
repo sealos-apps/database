@@ -23,7 +23,7 @@ data:
         maxSize: {{ .Values.dbproviderConfig.storageMaxSize }}
       components:
         monitoring:
-          url: {{ .Values.dbproviderConfig.monitorUrl | quote }}
+          url: {{ .Values.dbproviderConfig.metricsUrl | quote }}
         alerting:
           url: {{ .Values.dbproviderConfig.alertingUrl | quote }}
           secret: {{ .Values.dbproviderConfig.alertingSecret | quote }}

@@ -68,7 +68,7 @@ const StorageSchema = z.strictObject({
  * Monitoring configuration schema.
  */
 const MonitoringSchema = z.strictObject({
-  url: z.string().describe('Prometheus monitoring service URL')
+  url: z.string().describe('Direct Prometheus-compatible metrics endpoint URL')
 });
 
 /**
@@ -147,7 +147,7 @@ const BillingSchema = z.strictObject({
 });
 
 const ComponentsSchema = z.strictObject({
-  monitoring: MonitoringSchema.describe('Prometheus monitoring service URL'),
+  monitoring: MonitoringSchema.describe('Direct Prometheus-compatible metrics endpoint URL'),
   alerting: AlertSchema.describe('Database alert service configuration (server-side only)'),
   billing: BillingSchema.describe('Billing service configuration'),
   logging: z

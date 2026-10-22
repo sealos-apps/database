@@ -41,53 +41,6 @@ spec:
           {{- end }}
           resources:
             {{- toYaml .Values.resources | nindent 12 }}
-          env:
-            - name: SEALOS_DOMAIN
-              value: {{ .Values.dbproviderConfig.cloudDomain | quote }}
-            - name: DESKTOP_DOMAIN
-              value: {{ .Values.dbproviderConfig.cloudDomain | quote }}
-            - name: SEALOS_PORT
-              value: {{ include "database-frontend.portEnv" . | quote }}
-            - name: MONITOR_URL
-              value: {{ .Values.dbproviderConfig.monitorUrl | quote }}
-            - name: MINIO_URL
-              value: {{ .Values.dbproviderConfig.minioUrl | quote }}
-            - name: MINIO_ACCESS_KEY
-              value: {{ .Values.dbproviderConfig.minioAccessKey | quote }}
-            - name: MINIO_SECRET_KEY
-              value: {{ .Values.dbproviderConfig.minioSecretKey | quote }}
-            - name: MIGRATE_FILE_FETCH_FILE_IMAGE
-              value: {{ .Values.dbproviderConfig.migrateFileFetchFileImage | quote }}
-            - name: MIGRATE_FILE_IMPORT_DATA_IMAGE
-              value: {{ .Values.dbproviderConfig.migrateFileImportDataImage | quote }}
-            - name: MINIO_PORT
-              value: {{ .Values.dbproviderConfig.minioPort | quote }}
-            - name: MINIO_BUCKET_NAME
-              value: {{ .Values.dbproviderConfig.minioBucketName | quote }}
-            - name: BACKUP_ENABLED
-              value: {{ .Values.dbproviderConfig.backupEnabled | quote }}
-            - name: SHOW_DOCUMENT
-              value: {{ .Values.dbproviderConfig.showDocument | quote }}
-            - name: GUIDE_ENABLED
-              value: {{ .Values.dbproviderConfig.guideEnabled | quote }}
-            - name: BILLING_URL
-              value: {{ .Values.dbproviderConfig.billingUrl | quote }}
-            - name: MANAGED_DB_ENABLED
-              value: {{ .Values.dbproviderConfig.managedDbEnabled | quote }}
-            - name: VLOGS_BASE_URL
-              value: {{ .Values.dbproviderConfig.vlogsBaseUrl | quote }}
-            - name: MIGRATION_JOB_CPU_REQUIREMENT
-              value: {{ .Values.dbproviderConfig.migrationJobCPURequirement | quote }}
-            - name: MIGRATION_JOB_MEMORY_REQUIREMENT
-              value: {{ .Values.dbproviderConfig.migrationJobMemoryRequirement | quote }}
-            - name: DUMPIMPORT_JOB_CPU_REQUIREMENT
-              value: {{ .Values.dbproviderConfig.dumpImportJobCPURequirement | quote }}
-            - name: DUMPIMPORT_JOB_MEMORY_REQUIREMENT
-              value: {{ .Values.dbproviderConfig.dumpImportJobMemoryRequirement | quote }}
-            - name: BACKUP_JOB_CPU_REQUIREMENT
-              value: {{ .Values.dbproviderConfig.backupJobCPURequirement | quote }}
-            - name: BACKUP_JOB_MEMORY_REQUIREMENT
-              value: {{ .Values.dbproviderConfig.backupJobMemoryRequirement | quote }}
           ports:
             - name: http
               containerPort: {{ .Values.service.port }}

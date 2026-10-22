@@ -2,7 +2,7 @@ import { DBTypeEnum } from '@/constants/db';
 import { authSession } from '@/services/backend/auth';
 import { getK8s } from '@/services/backend/kubernetes';
 import { jsonRes } from '@/services/backend/response';
-import { handleAxiosStream } from '@/services/handleStream';
+import { rawMonitorFetch } from '@/services/monitorFetch';
 import { ApiResp } from '@/services/kubernet';
 import { MonitorDBResult } from '@/types/monitor';
 import { convertBytes } from '@/utils/tools';
@@ -75,13 +75,9 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse<
       };
     };
 
-    const result = await handleAxiosStream(
-      {
-        url: '/query',
-        params: params
-      },
-      kubeconfig
-    ).then((res) => adapterDataCharts(res as MonitorDBResult));
+    const result = await rawMonitorFetch(params, kubeconfig).then((res) =>
+      adapterDataCharts(res as MonitorDBResult)
+    );
 
     jsonRes(res, {
       code: 200,
