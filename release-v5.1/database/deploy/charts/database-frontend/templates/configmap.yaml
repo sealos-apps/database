@@ -36,7 +36,7 @@ data:
           url: {{ .Values.dbproviderConfig.vlogsBaseUrl | quote }}
         storage:
           url: {{ .Values.dbproviderConfig.minioUrl | quote }}
-          port: {{ .Values.dbproviderConfig.minioPort }}
+          port: {{ .Values.dbproviderConfig.minioPort | default 443 }}
           useSSL: {{ .Values.dbproviderConfig.minioUseSSL }}
           bucketName: {{ .Values.dbproviderConfig.minioBucketName | quote }}
           accessKey: {{ .Values.dbproviderConfig.minioAccessKey | quote }}

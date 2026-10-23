@@ -89,3 +89,8 @@ test('public API and readiness use loaded config without exposing credentials', 
   assert.throws(assertReady, /must be configured/);
   delete globalThis.__APP_CONFIG__;
 });
+
+test('legacy empty MinIO port uses the release default during upgrade', () => {
+  const { config } = render('--set-string', 'dbproviderConfig.minioPort=');
+  assert.equal(config.database.components.storage.port, 443);
+});

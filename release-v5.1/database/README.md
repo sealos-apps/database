@@ -172,7 +172,8 @@ when using that path, edit its configuration fields and restart explicitly.
 is the UI storage limit in GiB; `forcedClassName` empty leaves PVC selection to the
 existing release logic. `migration.importDataImage` is the existing release
 `MIGRATE_FILE_IMAGE` (not main's separate fetch/import image pair). MinIO `useSSL`
-is a real boolean: `false` enables HTTP. Keep storage credentials server-side;
+is a real boolean: `false` enables HTTP. Legacy empty `minioPort` Helm values
+use port 443 during upgrade. Keep storage credentials server-side;
 public configuration endpoints only return their existing explicit field lists.
 Invalid types or unknown YAML keys fail startup rather than silently using env.
 
