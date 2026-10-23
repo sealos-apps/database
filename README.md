@@ -49,6 +49,12 @@ Each source produces two `.tar.gz` cluster image archives and matching `.sha256`
 files. Checksums are verified before upload and contain portable basenames.
 Archives are also retained as GitHub Actions artifacts for seven days.
 
+For `v*` tag pushes, after both source builds and OSS uploads succeed, CI also
+attaches all four archives and their SHA-256/MD5 files to the GitHub Release.
+If the release does not exist, CI creates it with generated notes; tags containing
+a hyphen (such as `v5.2.0-beta1`) are marked as prereleases. Reruns replace assets
+with the same names. This job requires `contents: write` for `GITHUB_TOKEN`.
+
 - Release destination: `oss://<OSS_BUCKET>/release/<git-tag>/<source>/`
 - Branch/manual destination: `oss://<OSS_BUCKET>/ci/<source>/<sha7>/`
 
