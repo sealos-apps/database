@@ -37,3 +37,38 @@ jobs:
       publish: ${{ github.event_name == 'push' || inputs.publish_images == true || inputs.upload_oss == true }}
       upload_oss: ${{ github.event_name == 'push' || inputs.upload_oss == true }}
     secrets: inherit
+
+  release-assets:
+    needs: versions
+    if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v')
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: cluster-*
+          path: cluster-bundles
+          merge-multiple: true
+      - name: Verify and publish release assets
+        working-directory: cluster-bundles
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_REPO: ${{ github.repository }}
+          RELEASE_TAG: ${{ github.ref_name }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          shopt -s nullglob
+          archives=(*.tar.gz)
+          checksums=(*.tar.gz.sha256)
+          md5_checksums=(*.tar.gz.md5)
+          [[ ${#archives[@]} -eq 4 && ${#checksums[@]} -eq 4 && ${#md5_checksums[@]} -eq 4 ]]
+          sha256sum -c "${checksums[@]}"
+          md5sum -c "${md5_checksums[@]}"
+          if ! gh release view "$RELEASE_TAG" > /dev/null; then
+            flags=()
+            [[ "$RELEASE_TAG" != *-* ]] || flags+=(--prerelease)
+            gh release create "$RELEASE_TAG" --verify-tag --title "$RELEASE_TAG" --generate-notes "${flags[@]}"
+          fi
+          gh release upload "$RELEASE_TAG" "${archives[@]}" "${checksums[@]}" "${md5_checksums[@]}" --clobber
