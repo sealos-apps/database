@@ -127,8 +127,8 @@ an embedded Desktop integration test.
 ## Sealox compatibility on release-v5.1
 
 The release workspace exposes public `GET /api/platform/getClientAppConfig`
-with `{ code: 200, data: { storageMaxSize: number } }`, using the existing
-`STORAGE_MAX_SIZE` environment variable (default 300 GiB). This is the subset
+with `{ code: 200, data: { domain: string, storageMaxSize: number } }`, using the existing
+`database.storage.maxSize` ConfigMap setting (default 300 GiB). This is the subset
 needed by Sealox's database creation form, not the full main configuration API.
 The legacy `/api/getEnv` remains available.
 
@@ -169,11 +169,14 @@ The metrics endpoint must expose Prometheus `/api/v1/query` and
   For local development, copy `main/database/data/config.example.yaml` to
   `main/database/data/config.local.yaml` and edit the same setting.
   Restart the application after changing the mounted configuration.
-- Release-v5.1: the chart injects `METRICS_URL`. The install script accepts
-  `metricsUrl=<endpoint>` or `METRICS_URL=<endpoint>`, with `metricsUrl` taking
-  precedence. For local development, configure `METRICS_URL` in
-  `release-v5.1/database/.env.local` (see its `.env.template`); otherwise the
-  SDK uses the default endpoint above.
+- Release-v5.1: the chart mounts `/app/data/config.yaml` and writes
+  `database.components.monitoring.url` from `dbproviderConfig.metricsUrl`.
+  The install script accepts `metricsUrl=<endpoint>` or `METRICS_URL=<endpoint>`,
+  with `metricsUrl` taking precedence. For local development, copy
+  `release-v5.1/database/data/config.example.yaml` to `data/config.local.yaml`
+  within that application and edit the same YAML field. Application environment
+  variables are no longer read. See the release application's README for the
+  complete migration table; deploy the new image and ConfigMap together.
 
 On upgrade, replace custom `dbproviderConfig.monitorUrl` with `metricsUrl` and
 point it at the metrics backend, not the old monitor proxy. `MONITOR_URL`, the

@@ -1,3 +1,4 @@
+import { Config } from '@/config';
 import { CloudMigraionLabel, DBTypeEnum } from '@/constants/db';
 import { authSession } from '@/services/backend/auth';
 import { getK8s } from '@/services/backend/kubernetes';
@@ -22,11 +23,11 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse<
 
     if (
       !Boolean(
-        process.env.MINIO_ACCESS_KEY &&
-          process.env.MINIO_SECRET_KEY &&
-          process.env.MINIO_URL &&
-          process.env.MINIO_BUCKET_NAME &&
-          process.env.MIGRATE_FILE_IMAGE
+        Config().database.components.storage.accessKey &&
+          Config().database.components.storage.secretKey &&
+          Config().database.components.storage.url &&
+          Config().database.components.storage.bucketName &&
+          Config().database.migration.importDataImage
       )
     ) {
       throw new Error('MinIO related environment variables are not configured!');
@@ -173,23 +174,23 @@ export const json2DumpCR = async (
           containers: [
             {
               name: 'import-data',
-              image: process.env.MIGRATE_FILE_IMAGE,
+              image: Config().database.migration.importDataImage,
               env: [
                 {
                   name: 'MINIO_AK',
-                  value: process.env.MINIO_ACCESS_KEY
+                  value: Config().database.components.storage.accessKey
                 },
                 {
                   name: 'MINIO_SK',
-                  value: process.env.MINIO_SECRET_KEY
+                  value: Config().database.components.storage.secretKey
                 },
                 {
                   name: 'MINIO_URL',
-                  value: `http://${process.env.MINIO_URL}`
+                  value: `http://${Config().database.components.storage.url}`
                 },
                 {
                   name: 'BUCKET',
-                  value: process.env.MINIO_BUCKET_NAME
+                  value: Config().database.components.storage.bucketName
                 },
                 { name: 'USERNAME', value: data.username },
                 {

@@ -12,7 +12,46 @@ metadata:
   namespace: dbprovider-frontend
 data:
   config.yaml: |-
-    addr: :3000
+    cloud:
+      domain: "{{ .cloudDomain }}"
+      desktopDomain: "{{ .cloudDomain }}"
+      port: "{{ .cloudPort }}"
+      disableHttps: false
+    database:
+      features:
+        guide: {{ .guideEnabled }}
+        showDocument: true
+        fileImport: true
+        logs: false
+        kafka: true
+        managedDb: false
+      ui:
+        customScripts: []
+      storage:
+        forcedClassName: ""
+        maxSize: 300
+      components:
+        monitoring:
+          url: "{{ .metricsUrl }}"
+        alerting:
+          url: "http://database-alert.sealos.svc:8000"
+        billing:
+          url: "{{ .billingUrl }}"
+        logging:
+          url: "{{ .vlogsBaseUrl }}"
+        storage:
+          url: "{{ .minioUrl }}"
+          port: {{ .minioPort }}
+          useSSL: true
+          bucketName: "{{ .minioBucketName }}"
+          accessKey: "{{ .minioAccessKey }}"
+          secretKey: "{{ .minioSecretKey }}"
+        eventAnalysis:
+          fastGPTKey: ""
+      migration:
+        importDataImage: "{{ .migrateFileImage }}"
+      backup:
+        enabled: false
 ---
 apiVersion: apps/v1
 kind: Deployment
@@ -37,41 +76,6 @@ spec:
       serviceAccountName: cluster-version-reader
       containers:
         - name: dbprovider-frontend
-          env:
-            - name: SEALOS_DOMAIN
-              value: {{ .cloudDomain }}
-            - name: DESKTOP_DOMAIN
-              value: {{ .cloudDomain }}
-            - name: SEALOS_PORT
-              value: "{{ if .cloudPort }}:{{ .cloudPort }}{{ end }}"
-            - name: METRICS_URL
-              value: {{ .metricsUrl }}
-            - name: MINIO_URL
-              value: {{ .minioUrl }}
-            - name: MINIO_ACCESS_KEY
-              value: {{ .minioAccessKey }}
-            - name: MINIO_SECRET_KEY
-              value: {{ .minioSecretKey }}
-            - name: MIGRATE_FILE_IMAGE
-              value: {{ .migrateFileImage }}
-            - name: MINIO_PORT
-              value: '{{ .minioPort }}'
-            - name: MINIO_BUCKET_NAME
-              value: {{ .minioBucketName }}
-            - name: BACKUP_ENABLED
-              value: "false"
-            - name: SHOW_DOCUMENT
-              value: "true"
-            - name: DATA_IMPORT_ENABLED
-              value: "true"
-            - name: GUIDE_ENABLED
-              value: "{{ .guideEnabled }}"
-            - name: BILLING_URL
-              value: {{ .billingUrl }}
-            - name: MANAGED_DB_ENABLED
-              value: "false"
-            - name: VLOGS_BASE_URL
-              value: {{ .vlogsBaseUrl }}
           securityContext:
             runAsNonRoot: true
             runAsUser: 1001
@@ -91,7 +95,7 @@ spec:
           imagePullPolicy: Always
           volumeMounts:
             - name: dbprovider-frontend-volume
-              mountPath: /config.yaml
+              mountPath: /app/data/config.yaml
               subPath: config.yaml
       affinity:
         podAntiAffinity:

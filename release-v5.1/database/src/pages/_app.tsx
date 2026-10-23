@@ -1,3 +1,4 @@
+import { Config } from '@/config';
 import { useHostConfigStore } from '@/store/hostConfig';
 import { theme } from '@/constants/theme';
 import { useConfirm } from '@/hooks/useConfirm';
@@ -208,7 +209,7 @@ MyApp.getInitialProps = async (context: AppContext): Promise<AppOwnProps & AppIn
 
   try {
     if (typeof window === 'undefined') {
-      customScripts = JSON.parse(process.env.CUSTOM_SCRIPTS ?? '[]');
+      customScripts = Config().database.ui.customScripts;
     }
   } catch (error) {
     console.error('Failed to inject custom scripts:', error);

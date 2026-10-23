@@ -1,3 +1,4 @@
+import { Config } from '@/config';
 import { jsonRes } from '@/services/backend/response';
 import { ApiResp } from '@/services/kubernet';
 import { resolveDataflowEnabled } from '@/services/backend/dataflow';
@@ -31,17 +32,17 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse<
 
   jsonRes<SystemEnvResponse>(res, {
     data: {
-      domain: process.env.SEALOS_DOMAIN || 'cloud.sealos.io',
-      desktopDomain: process.env.DESKTOP_DOMAIN || 'cloud.sealos.io',
-      env_storage_className: process.env.STORAGE_CLASSNAME || 'openebs-backup',
-      migrate_file_image: process.env.MIGRATE_FILE_IMAGE || 'ghcr.io/wallyxjh/test:7.1',
-      minio_url: process.env.MINIO_URL || '',
-      BACKUP_ENABLED: process.env.BACKUP_ENABLED === 'true',
-      LOG_ENABLED: process.env.LOG_ENABLED === 'true',
-      SHOW_DOCUMENT: process.env.SHOW_DOCUMENT === 'true',
-      DATA_IMPORT_ENABLED: process.env.DATA_IMPORT_ENABLED !== 'false',
-      KAFKA_ENABLED: process.env.KAFKA_ENABLED !== 'false',
-      STORAGE_MAX_SIZE: Number(process.env.STORAGE_MAX_SIZE) || 300,
+      domain: Config().cloud.domain || 'cloud.sealos.io',
+      desktopDomain: Config().cloud.desktopDomain || 'cloud.sealos.io',
+      env_storage_className: Config().database.storage.forcedClassName || 'openebs-backup',
+      migrate_file_image: Config().database.migration.importDataImage || 'ghcr.io/wallyxjh/test:7.1',
+      minio_url: Config().database.components.storage.url || '',
+      BACKUP_ENABLED: Config().database.backup.enabled,
+      LOG_ENABLED: Config().database.features.logs,
+      SHOW_DOCUMENT: Config().database.features.showDocument,
+      DATA_IMPORT_ENABLED: Config().database.features.fileImport,
+      KAFKA_ENABLED: Config().database.features.kafka,
+      STORAGE_MAX_SIZE: Number(Config().database.storage.maxSize) || 300,
       DATAFLOW_ENABLED
     }
   });

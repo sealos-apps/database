@@ -1,3 +1,4 @@
+import { Config } from '@/config';
 import { MetricsClient } from '@labring/sealos-metrics-sdk';
 import type { DatabaseQueryParams, TimeRange } from '@labring/sealos-metrics-sdk';
 
@@ -17,7 +18,7 @@ const requireString = (value: unknown, name: string): string => {
 
 // Bind each client to this request's credentials; never share it between users.
 const createClient = (kubeconfig: string) =>
-  new MetricsClient({ kubeconfig, metricsURL: process.env.METRICS_URL });
+  new MetricsClient({ kubeconfig, metricsURL: Config().database.components.monitoring.url });
 
 export const databaseMonitorFetch = (params: MonitorParams, kubeconfig: string) => {
   const { namespace, start, end, step, time } = params;

@@ -1,3 +1,4 @@
+import { Config } from '@/config';
 import type { NextApiRequest, NextApiResponse } from 'next';
 import { jsonRes } from '@/services/backend/response';
 import { authSession } from '@/services/backend/auth';
@@ -68,7 +69,7 @@ function countSourcePrice(rawData: ResourcePriceType['data']['properties'], type
 }
 
 const getResourcePrice = async () => {
-  const url = process.env.BILLING_URL;
+  const url = Config().database.components.billing.url;
 
   const res = await fetch(`${url}/account/v1alpha1/properties`, {
     method: 'POST'

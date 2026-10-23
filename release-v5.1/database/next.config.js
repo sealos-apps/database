@@ -26,7 +26,8 @@ const nextConfig = {
   ],
   experimental: {
     // this includes files from the workspace root one directory up
-    outputFileTracingRoot: path.join(__dirname, '../')
+    outputFileTracingRoot: path.join(__dirname, '../'),
+    instrumentationHook: true
   },
   async redirects() {
     return [

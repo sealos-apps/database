@@ -1,3 +1,4 @@
+import { Config } from '@/config';
 import { createDatabaseSchemas } from '@/types/apis';
 import { getK8s } from '../kubernetes';
 import { z } from 'zod';
@@ -138,7 +139,7 @@ export async function createDatabase(
 
   const account = json2Account(rawDbForm);
   const cluster = json2CreateCluster(rawDbForm, undefined, {
-    storageClassName: process.env.STORAGE_CLASSNAME
+    storageClassName: Config().database.storage.forcedClassName
   });
 
   console.log('Generated cluster config preview:', {
