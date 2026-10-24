@@ -17,6 +17,7 @@ permissions:
   contents: read
 
 env:
+  DATAFLOW_IMAGE: ghcr.io/${{ github.repository }}/dataflow
   RUNTIME_IMAGE: ghcr.io/${{ github.repository }}/database-frontend
   CLUSTER_IMAGE: ghcr.io/${{ github.repository }}/database-cluster
   SEALOS_VERSION: v5.1.2-rc5
@@ -58,6 +59,12 @@ jobs:
           helm lint charts/database-frontend
           helm template dbprovider-frontend charts/database-frontend --namespace dbprovider-frontend > /dev/null
           python3 ../../../tests/test_deployment_compatibility.py
+      - name: Validate DataFlow and combined installer
+        run: |
+          python3 scripts/test-bundle.py
+          bash -n deploy/install.sh scripts/prepare-bundle.sh dataflow/deploy/install.sh
+          helm lint dataflow/deploy/charts/dataflow -f dataflow/deploy/charts/dataflow/dataflow-values.yaml
+          helm template dataflow dataflow/deploy/charts/dataflow --namespace dataflow-system -f dataflow/deploy/charts/dataflow/dataflow-values.yaml > /dev/null
 
   runtime:
     needs: metadata
@@ -96,6 +103,19 @@ jobs:
           tags: ${{ env.RUNTIME_IMAGE }}:${{ needs.metadata.outputs.tag }}-${{ matrix.arch }}
           cache-from: type=gha,scope=database-${{ inputs.source }}-${{ matrix.arch }}
           cache-to: type=gha,scope=database-${{ inputs.source }}-${{ matrix.arch }},mode=max
+      - name: Build DataFlow runtime (${{ matrix.arch }})
+        uses: docker/build-push-action@v6
+        with:
+          context: ./dataflow
+          file: ./dataflow/core/Dockerfile
+          build-args: |
+            VERSION=${{ needs.metadata.outputs.tag }}
+            PLATFORM=sealos
+          platforms: linux/${{ matrix.arch }}
+          push: ${{ inputs.publish }}
+          tags: ${{ env.DATAFLOW_IMAGE }}:${{ needs.metadata.outputs.tag }}-${{ matrix.arch }}
+          cache-from: type=gha,scope=dataflow-${{ matrix.arch }}
+          cache-to: type=gha,scope=dataflow-${{ matrix.arch }},mode=max
 
   runtime-release:
     needs: [metadata, runtime]
@@ -118,6 +138,9 @@ jobs:
           set -euo pipefail
           docker buildx imagetools create -t "${RUNTIME_IMAGE}:${TAG}" \
             "${RUNTIME_IMAGE}:${TAG}-amd64" "${RUNTIME_IMAGE}:${TAG}-arm64"
+          docker buildx imagetools create -t "${DATAFLOW_IMAGE}:${TAG}" \
+            "${DATAFLOW_IMAGE}:${TAG}-amd64" "${DATAFLOW_IMAGE}:${TAG}-arm64"
+          docker buildx imagetools inspect "${DATAFLOW_IMAGE}:${TAG}"
           docker buildx imagetools inspect "${RUNTIME_IMAGE}:${TAG}"
 
   cluster:
@@ -155,15 +178,15 @@ jobs:
           GH_USER: ${{ github.actor }}
         run: sudo sealos login -u "$GH_USER" -p "$GH_TOKEN" ghcr.io
       - name: Build, push and archive cluster image
-        working-directory: ${{ inputs.source }}/database/deploy
         env:
           TAG: ${{ needs.metadata.outputs.tag }}
           ARCH: ${{ matrix.arch }}
+          SOURCE: ${{ inputs.source }}
         run: |
           set -euo pipefail
-          export RUNTIME_REF="${RUNTIME_IMAGE}:${TAG}"
-          # Change only the chart's runtime image, preserving all other defaults.
-          ruby -ryaml -e 'p = "charts/database-frontend/values.yaml"; d = YAML.load_file(p); d["image"] = ENV.fetch("RUNTIME_REF"); File.write(p, YAML.dump(d))'
+          bundle_dir="${RUNNER_TEMP}/database-bundle-${SOURCE}-${ARCH}"
+          bash scripts/prepare-bundle.sh "$SOURCE" "$bundle_dir" "$RUNTIME_IMAGE" "$DATAFLOW_IMAGE" "$TAG"
+          cd "$bundle_dir"
           sudo sealos registry save --registry-dir=registry --arch "$ARCH" .
           ref="${CLUSTER_IMAGE}:${TAG}-${ARCH}"
           sudo sealos build -t "$ref" --platform "linux/${ARCH}" -f Kubefile .
@@ -215,6 +238,7 @@ jobs:
           SOURCE: ${{ inputs.source }}
         run: |
           set -euo pipefail
+          docker buildx imagetools create -t "${DATAFLOW_IMAGE}:${SOURCE}" "${DATAFLOW_IMAGE}:${TAG}"
           docker buildx imagetools create -t "${RUNTIME_IMAGE}:${SOURCE}" "${RUNTIME_IMAGE}:${TAG}"
           docker buildx imagetools create -t "${CLUSTER_IMAGE}:${SOURCE}" "${CLUSTER_IMAGE}:${TAG}"
       - uses: actions/download-artifact@v4

@@ -1,0 +1,29 @@
+# Public upstream test TLS fixtures and the client-side PostHog ingestion key.
+# Verified byte-for-byte against sealos-apps/dataflow commit
+# a6fbbf53906d2ac9f4a0817af7f50030f90c86d3; no operational credentials.
+# Exact file/rule/line fingerprints keep other findings visible.
+dataflow/core/src/env/env.go:generic-api-key:92
+dataflow/core/src/plugins/ssl/tls_test.go:private-key:58
+dataflow/dev/certs/ca/clickhouse/ca-key.pem:private-key:1
+dataflow/dev/certs/ca/elasticsearch/ca-key.pem:private-key:1
+dataflow/dev/certs/ca/mariadb/ca-key.pem:private-key:1
+dataflow/dev/certs/ca/mysql/ca-key.pem:private-key:1
+dataflow/dev/certs/ca/mongodb/ca-key.pem:private-key:1
+dataflow/dev/certs/ca/postgres/ca-key.pem:private-key:1
+dataflow/dev/certs/ca/redis/ca-key.pem:private-key:1
+dataflow/dev/certs/client/clickhouse/client-key.pem:private-key:1
+dataflow/dev/certs/client/elasticsearch/client-key.pem:private-key:1
+dataflow/dev/certs/client/mariadb/client-key.pem:private-key:1
+dataflow/dev/certs/client/mysql/client-key.pem:private-key:1
+dataflow/dev/certs/client/postgres/client-key.pem:private-key:1
+dataflow/dev/certs/client/mongodb/client-key.pem:private-key:1
+dataflow/dev/certs/server/clickhouse/server-key.pem:private-key:1
+dataflow/dev/certs/client/redis/client-key.pem:private-key:1
+dataflow/dev/certs/server/elasticsearch/server-key.pem:private-key:1
+dataflow/dev/certs/server/mariadb/server-key.pem:private-key:1
+dataflow/dev/certs/server/mongodb/mongodb.pem:private-key:25
+dataflow/dev/certs/server/redis/server-key.pem:private-key:1
+dataflow/dev/certs/server/mysql/server-key.pem:private-key:1
+dataflow/dev/certs/server/postgres/server-key.pem:private-key:1
+dataflow/dev/certs/server/redis/redis.pem:private-key:25
+dataflow/dev/certs/server/mongodb/server-key.pem:private-key:1

@@ -1,0 +1,7 @@
+build/
+
+# Keep upstream tracked embed placeholders, excluding generated assets.
+!build/
+build/*
+!build/app.js
+!build/index.html

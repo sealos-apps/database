@@ -1,0 +1,133 @@
+/*
+ * Copyright 2026 Clidey, Inc.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+package common
+
+import (
+	"fmt"
+	"net/url"
+	"os"
+	"strconv"
+	"strings"
+
+	"github.com/clidey/whodb/core/src/engine"
+)
+
+// GetRecordValueOrDefault searches for a key in a slice of Records and returns its value,
+// or the provided default if the key is not found or has an empty value.
+func GetRecordValueOrDefault(records []engine.Record, key string, defaultValue string) string {
+	for _, record := range records {
+		if record.Key == key && len(record.Value) > 0 {
+			return record.Value
+		}
+	}
+	return defaultValue
+}
+
+// IsRunningInsideDocker detects if the current process is running inside a Docker container
+// by checking for the presence of the /.dockerenv file.
+func IsRunningInsideDocker() bool {
+	_, err := os.Stat("/.dockerenv")
+	return !os.IsNotExist(err)
+}
+
+// IsRunningInsideWSL2 detects if the current process is running inside WSL2
+// by checking for "microsoft" or "WSL" in /proc/version.
+func IsRunningInsideWSL2() bool {
+	data, err := os.ReadFile("/proc/version")
+	if err != nil {
+		return false
+	}
+	version := strings.ToLower(string(data))
+	return strings.Contains(version, "microsoft") || strings.Contains(version, "wsl")
+}
+
+// GetWSL2WindowsHost returns the Windows host IP from inside WSL2
+// by reading the default gateway from /proc/net/route. In WSL2, the
+// default gateway is the Windows host. This is a file read only —
+// no command execution.
+func GetWSL2WindowsHost() string {
+	data, err := os.ReadFile("/proc/net/route")
+	if err != nil {
+		return ""
+	}
+	for _, line := range strings.Split(string(data), "\n") {
+		fields := strings.Fields(line)
+		if len(fields) < 3 || fields[1] != "00000000" {
+			continue
+		}
+		// Default route found — parse gateway from hex to IP
+		gw, err := strconv.ParseUint(fields[2], 16, 32)
+		if err != nil {
+			return ""
+		}
+		return fmt.Sprintf("%d.%d.%d.%d", gw&0xFF, (gw>>8)&0xFF, (gw>>16)&0xFF, (gw>>24)&0xFF)
+	}
+	return ""
+}
+
+// replaceHost replaces the hostname portion of a host string (which may include a port)
+// while preserving the port. For example, replaceHost("localhost:1234", "localhost", "172.1.2.3")
+// returns "172.1.2.3:1234".
+func replaceHost(hostWithPort, oldHost, newHost string) string {
+	return strings.Replace(hostWithPort, oldHost, newHost, 1)
+}
+
+// ResolveLocalURL rewrites a URL targeting localhost or 127.0.0.1 so it reaches
+// the host machine when running inside Docker or WSL2. Non-localhost URLs are
+// returned unchanged.
+func ResolveLocalURL(rawURL string) string {
+	parsed, err := url.Parse(rawURL)
+	if err != nil {
+		return rawURL
+	}
+	hostname := parsed.Hostname()
+	if hostname != "localhost" && hostname != "127.0.0.1" {
+		return rawURL
+	}
+	if IsRunningInsideDocker() {
+		parsed.Host = replaceHost(parsed.Host, hostname, "host.docker.internal")
+		return parsed.String()
+	}
+	if IsRunningInsideWSL2() {
+		if wslHost := GetWSL2WindowsHost(); wslHost != "" {
+			parsed.Host = replaceHost(parsed.Host, hostname, wslHost)
+			return parsed.String()
+		}
+	}
+	return rawURL
+}
+
+// FilterList returns a new slice containing only the elements for which the predicate returns true.
+func FilterList[T any](items []T, by func(input T) bool) []T {
+	filteredItems := []T{}
+	for _, item := range items {
+		if by(item) {
+			filteredItems = append(filteredItems, item)
+		}
+	}
+	return filteredItems
+}
+
+// StrPtrToBool converts a string pointer to a boolean.
+// Returns true if the string value is "true" (case-insensitive), false otherwise or if nil.
+func StrPtrToBool(s *string) bool {
+	if s == nil {
+		return false
+	}
+	value := strings.ToLower(*s)
+	return value == "true"
+}

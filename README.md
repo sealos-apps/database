@@ -13,6 +13,11 @@ source directories, not the branch that triggers CI.
 | Push a `v*` tag | Both workspaces | Yes | Yes |
 | Manual run | Both workspaces | `publish_images` or `upload_oss` | `upload_oss` |
 
+DataFlow is imported once under `dataflow/` (provenance in
+[dataflow/IMPORT.md](dataflow/IMPORT.md)). Both source channels build the same
+DataFlow source alongside their respective Database frontend. Their cluster
+images install both services using [deploy/install.sh](deploy/install.sh).
+
 Every runtime image and cluster image supports `linux/amd64` and `linux/arm64`.
 Runtime builds use each workspace's root Dockerfile with `name=database` and
 `path=database`. Cluster images include the Helm chart, entrypoint
@@ -21,6 +26,7 @@ and the runtime image saved by Sealos for the selected architecture.
 Images are published to:
 
 - `ghcr.io/sealos-apps/database/database-frontend:<tag>`
+- `ghcr.io/sealos-apps/database/dataflow:<tag>`
 - `ghcr.io/sealos-apps/database/database-cluster:<tag>`
 
 Tags are `<source>-<sha7>` for branch/manual builds and
@@ -200,3 +206,72 @@ a cluster or write database data:
 node --test tests/test_metrics_sdk.cjs
 python3 tests/test_deployment_compatibility.py
 ```
+
+## Combined Database + DataFlow installation
+
+The cluster package stages the selected Database chart and the shared DataFlow
+chart under its root `charts/` directory so Sealos can discover both runtime
+images. The installer subdirectories link to this shared chart directory. Runtime references are pinned to the same source/version tag. Install
+keeps two independent Helm releases and Deployments:
+
+| Component | Default release | Default namespace | Persisted user values |
+| --- | --- | --- | --- |
+| Database | `dbprovider-frontend` | `dbprovider-frontend` | main: `/root/.sealos/cloud/values/core/dbprovider-frontend-values.yaml`; release-v5.1: `/root/.sealos/cloud/values/apps/database/dbprovider-values.yaml` |
+| DataFlow | `dataflow` | `dataflow-system` | `/root/.sealos/cloud/values/apps/dataflow/dataflow-values.yaml` |
+
+Database retains its existing `RELEASE_NAME`, `RELEASE_NAMESPACE`, `HELM_OPTS`
+and `HELM_OPTIONS` controls. DataFlow uses `DATAFLOW_RELEASE_NAME`,
+`DATAFLOW_NAMESPACE`, `DATAFLOW_HELM_OPTS` and optionally
+`DATAFLOW_USER_VALUES_DIR`. Both use the Sealos cloud configuration; a
+`SEALOS_CLOUD_DOMAIN` override applies to both. DataFlow installs first. A
+failure stops installation before Database is upgraded. The two Helm upgrades
+are not a transaction: if Database fails afterward, DataFlow remains upgraded.
+
+See [deploy/env.template](deploy/env.template) for defaults, purposes and the
+shell environment override method; the installer does not load it automatically.
+
+DataFlow keeps the hidden `app-system/dataflow` Desktop App and internal
+`dataflow.sealos.io/health-url` annotation. Existing Database “Manage data”
+buttons continue opening `system-dataflow` with resource name, database type,
+language and theme. No React dependency merge or new cross-service API is needed.
+
+### Upgrading an existing installation
+
+Use the existing DataFlow release and namespace, and preserve the user values
+file. If that file is absent but the release exists, the installer recovers
+its effective Helm values before upgrading. This preserves external metadata
+DSNs, custom resource names, storage settings and custom runtime Secrets.
+The installer resolves the configured runtime Secret from the chart and reuses
+its session encryption key; it stops if an existing release's key or values
+cannot be read. Fresh installations generate a key once. Recovered files use
+restricted permissions because Helm values may contain credentials.
+
+The combined package supplies versioned image pins even when saved values
+contain older image references. `DATAFLOW_HELM_OPTS` remains an explicit override
+for DataFlow; Database always uses the bundled runtime image. Existing custom
+DataFlow App names must match Database's `app-system/dataflow` discovery contract.
+
+Keep the DataFlow release, PostgreSQL resource/PVC and Secret in place. Do not
+uninstall the old DataFlow release: it is now upgraded by the combined package,
+not replaced by a new release. Existing charts can delete their metadata cluster
+on uninstall. No SQL/data-copy migration is performed by this source migration.
+Rolling back requires rolling back the two Helm releases separately, with the
+same storage and encryption key; application schema compatibility must be checked
+before downgrading DataFlow.
+
+### Local validation
+
+```bash
+python3 scripts/test-bundle.py
+bash scripts/prepare-bundle.sh main /tmp/database-bundle \
+  ghcr.io/sealos-apps/database/database-frontend \
+  ghcr.io/sealos-apps/database/dataflow main-<sha7>
+```
+
+The output directory must not exist. The tests use fake Helm/kubectl for upgrade
+checks and real Helm rendering for both source packages; they never access a
+cluster or write to a database. CI runs these checks and builds both runtime
+architectures. Actual installation may initialize/upgrade DataFlow metadata;
+local source/build checks do not prove live storage, authentication or browser
+acceptance. Live deployment requires a chosen cluster and a separately authorized
+metadata modification if initialization or schema migration is needed.
