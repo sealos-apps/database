@@ -9,6 +9,9 @@ import unittest
 ROOT = Path(__file__).resolve().parents[1]
 SOURCES = ("main", "release-v5.1")
 
+def deployment_path(source):
+    return ROOT / ("deploy/kubeblocks-0.8" if source == "release-v5.1" else "database/deploy")
+
 
 class DeploymentCompatibility(unittest.TestCase):
     def test_existing_values_and_resource_identity(self):
@@ -20,7 +23,7 @@ class DeploymentCompatibility(unittest.TestCase):
                                   '  currencySymbol: "usd"\n')
                 result = subprocess.run([
                     "helm", "template", "dbprovider-frontend",
-                    str(ROOT / source / "database/deploy/charts/database-frontend"),
+                    str(deployment_path(source) / "charts/database-frontend"),
                     "--namespace", "dbprovider-frontend", "-f", str(values),
                 ], text=True, capture_output=True, check=True).stdout
                 self.assertNotIn("currencySymbol", result)
@@ -41,7 +44,7 @@ class DeploymentCompatibility(unittest.TestCase):
                 if source == "main":
                     self.assertIn("    database:\n", result)
 
-    def run_installer(self, source, ownership):
+    def run_installer(self, source, ownership, version=None):
         with tempfile.TemporaryDirectory() as temp:
             directory = Path(temp)
             calls = directory / "calls.jsonl"
@@ -71,16 +74,28 @@ if pathlib.Path(sys.argv[0]).name == "kubectl":
             values.write_text(content)
             env = os.environ.copy()
             # Ensure host/session variables cannot influence fixture deployment identity.
-            for key in ("RELEASE_NAME", "RELEASE_NAMESPACE", "HELM_OPTS", "HELM_OPTIONS"):
+            for key in ("RELEASE_NAME", "RELEASE_NAMESPACE", "HELM_OPTS", "HELM_OPTIONS", "KUBEBLOCKS_VERSION"):
                 env.pop(key, None)
             env.update(PATH=f"{directory}:{env['PATH']}", MOCK_CALLS=str(calls),
                        MOCK_OWNERSHIP=ownership, TOOLS_FILE=str(tools),
                        USER_VALUES_PATH=str(values))
-            deploy = ROOT / source / "database/deploy"
+            if version is not None:
+                env["KUBEBLOCKS_VERSION"] = version
+            deploy = deployment_path(source)
             result = subprocess.run(["bash", "database-frontend-entrypoint.sh"],
                                     cwd=deploy, env=env, text=True, capture_output=True)
             self.assertEqual(values.read_text(), content)
             return result, [json.loads(line) for line in calls.read_text().splitlines()]
+
+    def test_version_override_reaches_helm_without_replacing_persisted_values(self):
+        for source in SOURCES:
+            for version in ("0.8", "0.9"):
+                with self.subTest(source=source, version=version):
+                    result, calls = self.run_installer(
+                        source, "Helm|dbprovider-frontend|dbprovider-frontend", version)
+                    self.assertEqual(result.returncode, 0, result.stderr)
+                    helm = next(call for call in calls if call[0] == "helm")
+                    self.assertIn(f"dbproviderConfig.kubeblocksVersion={version}", helm)
 
     def test_upgrade_uses_existing_release_without_reassigning_ownership(self):
         for source in SOURCES:

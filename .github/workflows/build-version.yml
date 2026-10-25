@@ -52,13 +52,19 @@ jobs:
         with:
           version: v3.17.3
       - name: Validate chart and entrypoint
-        working-directory: ${{ inputs.source }}/database/deploy
+        env:
+          SOURCE: ${{ inputs.source }}
         run: |
           set -euo pipefail
-          bash -n database-frontend-entrypoint.sh
-          helm lint charts/database-frontend
-          helm template dbprovider-frontend charts/database-frontend --namespace dbprovider-frontend > /dev/null
-          python3 ../../../tests/test_deployment_compatibility.py
+          case "$SOURCE" in
+            main) deploy_dir=database/deploy ;;
+            release-v5.1) deploy_dir=deploy/kubeblocks-0.8 ;;
+            *) exit 1 ;;
+          esac
+          bash -n "$deploy_dir/database-frontend-entrypoint.sh"
+          helm lint "$deploy_dir/charts/database-frontend"
+          helm template dbprovider-frontend "$deploy_dir/charts/database-frontend" --namespace dbprovider-frontend > /dev/null
+          python3 tests/test_deployment_compatibility.py
       - name: Validate DataFlow and combined installer
         run: |
           python3 scripts/test-bundle.py
@@ -93,8 +99,8 @@ jobs:
       - name: Build runtime image (${{ matrix.arch }})
         uses: docker/build-push-action@v6
         with:
-          context: ./${{ inputs.source }}
-          file: ./${{ inputs.source }}/Dockerfile
+          context: .
+          file: ./Dockerfile
           build-args: |
             name=database
             path=database

@@ -1,3 +1,4 @@
+const { appRoot, sourceRoot, sourceFile, originalAlias } = require('./support/source.cjs');
 // Offline configuration contract: real Helm output, YAML parser, schema and API handlers.
 const { test } = require('node:test');
 const assert = require('node:assert/strict');
@@ -5,8 +6,8 @@ const { readFileSync } = require('node:fs');
 const { execFileSync } = require('node:child_process');
 const { resolve, dirname } = require('node:path');
 const { createRequire, Module } = require('node:module');
-const root = resolve('release-v5.1/database');
-const requireApp = createRequire(resolve(root, 'package.json'));
+const root = resolve('deploy/kubeblocks-0.8');
+const requireApp = createRequire(resolve(appRoot, 'package.json'));
 const ts = requireApp('typescript');
 const yaml = requireApp('js-yaml');
 function load(file, mocks = {}) {
@@ -14,8 +15,8 @@ function load(file, mocks = {}) {
   mod.filename = file;
   mod.paths = Module._nodeModulePaths(dirname(file));
   mod.require = id => {
-    if (id in mocks) return mocks[id];
-    if (id.startsWith('@/')) return load(resolve(root, 'src', id.slice(2) + '.ts'), mocks);
+    if (originalAlias(id) in mocks) return mocks[originalAlias(id)];
+    if (id.startsWith('@/')) return load(resolve(sourceRoot, id.slice(2) + '.ts'), mocks);
     return requireApp(id);
   };
   mod._compile(ts.transpileModule(readFileSync(file, 'utf8'), {
@@ -23,10 +24,10 @@ function load(file, mocks = {}) {
   }).outputText, file);
   return mod.exports;
 }
-const { AppConfigSchema } = load(resolve(root, 'src/types/config.ts'));
+const { AppConfigSchema } = load(resolve(sourceRoot, 'types/config.ts'));
 function render(...args) {
   const text = execFileSync('helm', ['template', 'dbprovider-frontend',
-    resolve(root, 'deploy/charts/database-frontend'), ...args], { encoding: 'utf8' });
+    resolve(root, 'charts/database-frontend'), ...args], { encoding: 'utf8' });
   const docs = yaml.loadAll(text).filter(Boolean);
   const cm = docs.find(d => d.kind === 'ConfigMap');
   const config = AppConfigSchema.parse(yaml.load(cm.data['config.yaml']));
@@ -34,7 +35,7 @@ function render(...args) {
 }
 
 test('default and bundled Helm values produce valid mounted release config', () => {
-  for (const args of [[], ['-f', resolve(root, 'deploy/charts/database-frontend/database-frontend-values.yaml')]]) {
+  for (const args of [[], ['-f', resolve(root, 'charts/database-frontend/database-frontend-values.yaml')]]) {
     const { config, cm, deployment } = render(...args);
     assert.deepEqual(Object.keys(cm.data), ['config.yaml']);
     assert.equal(config.database.storage.maxSize, 300);
@@ -60,7 +61,7 @@ test('legacy string flags, false, quotes, custom scripts and limits survive Helm
 });
 
 test('example validates; wrong types and unknown settings are rejected', () => {
-  const config = yaml.load(readFileSync(resolve(root, 'data/config.example.yaml'), 'utf8'));
+  const config = yaml.load(readFileSync(resolve(appRoot, 'data/config.kb08.example.yaml'), 'utf8'));
   assert.ok(AppConfigSchema.safeParse(config).success);
   config.database.features.fileImport = 'false';
   assert.equal(AppConfigSchema.safeParse(config).success, false);
@@ -77,11 +78,11 @@ test('public API and readiness use loaded config without exposing credentials', 
     '--set-string', 'dbproviderConfig.cloudDomain=config.example.test',
     '--set-string', 'dbproviderConfig.minioSecretKey=private-test-secret');
   globalThis.__APP_CONFIG__ = config;
-  const { assertReady } = load(resolve(root, 'src/utils/healthz.ts'));
+  const { assertReady } = load(sourceFile('release-v5.1', 'utils/healthz.ts'));
   assertReady();
   const mocks = { '@/services/backend/response': { jsonRes: (_res, body) => { response = body; } } };
   let response;
-  const handler = load(resolve(root, 'src/pages/api/platform/getClientAppConfig.ts'), mocks).default;
+  const handler = load(sourceFile('release-v5.1', 'pages/api/platform/getClientAppConfig.ts'), mocks).default;
   await handler({}, {});
   assert.deepEqual(response.data, { domain: 'config.example.test', storageMaxSize: 700 });
   assert.equal(JSON.stringify(response).includes('private-test-secret'), false);

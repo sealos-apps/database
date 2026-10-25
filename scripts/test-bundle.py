@@ -120,7 +120,7 @@ else:
         fixture = self.work / 'source'
         for path in ('scripts/prepare-bundle.sh', 'deploy/Kubefile', 'deploy/install.sh',
                      'dataflow/deploy/install.sh', 'dataflow/deploy/charts',
-                     'main/database/deploy', 'release-v5.1/database/deploy'):
+                     'database/deploy', 'deploy/kubeblocks-0.8'):
             src, dst = ROOT / path, fixture / path
             dst.parent.mkdir(parents=True, exist_ok=True)
             if src.is_dir():

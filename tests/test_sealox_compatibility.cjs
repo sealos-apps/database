@@ -1,3 +1,4 @@
+const { appRoot, sourceRoot, sourceFile, originalAlias } = require('./support/source.cjs');
 // Run with: node --test tests/test_sealox_compatibility.cjs
 // Real release schemas and YAML generation; Kubernetes and backup writes are mocked.
 const { test } = require('node:test');
@@ -5,11 +6,11 @@ const assert = require('node:assert/strict');
 const { readFileSync, existsSync } = require('node:fs');
 const { resolve, dirname } = require('node:path');
 const { createRequire, Module } = require('node:module');
-const root = resolve('release-v5.1/database/src');
-const requireApp = createRequire(resolve('release-v5.1/database/package.json'));
+const root = sourceRoot;
+const requireApp = createRequire(resolve(appRoot, 'package.json'));
 const ts = requireApp('typescript');
 const yaml = requireApp('js-yaml');
-const config = yaml.load(readFileSync(resolve('release-v5.1/database/data/config.example.yaml'), 'utf8'));
+const config = yaml.load(readFileSync(resolve('database/data/config.kb08.example.yaml'), 'utf8'));
 globalThis.__APP_CONFIG__ = config;
 
 function loader(mocks = {}) {
@@ -22,7 +23,12 @@ function loader(mocks = {}) {
     mod.paths = Module._nodeModulePaths(dirname(file));
     cache.set(file, mod);
     mod.require = id => {
-      if (id in mocks) return mocks[id];
+      const alias = originalAlias(id);
+      const originalFile = file.replace(/implementations\/kb0[89]\//, '');
+      const target = alias.startsWith('@/') ? resolve(sourceRoot, alias.slice(2)) : null;
+      let relative = target ? require('node:path').relative(dirname(originalFile), target) : id;
+      if (!relative.startsWith('.')) relative = './' + relative;
+      if (alias in mocks || relative in mocks) return { ...mocks[alias], ...mocks[relative] };
       if (id.startsWith('@labring/sealos-shared-sdk/')) return load(requireApp.resolve(id));
       if (id.startsWith('@/') || id.startsWith('.')) {
         const base = id.startsWith('@/') ? resolve(root, id.slice(2)) : resolve(dirname(file), id);
@@ -57,9 +63,9 @@ function setup() {
     '@/utils/tools': { getScore: () => 350, encodeToHex: value => Buffer.from(value).toString('hex'), str2Num: Number },
     './tools': { formatNumber: Number, str2Num: Number }
   });
-  const { body } = load(resolve(root, 'types/apis/v2alpha/database/create-database.ts'));
+  const { body } = load(sourceFile('release-v5.1', 'types/apis/v2alpha/database/create-database.ts'));
   apiSchemas.createDatabaseSchemas = { body };
-  const { createDatabase } = load(resolve(root, 'services/backend/v2alpha/create-database.ts'));
+  const { createDatabase } = load(sourceFile('release-v5.1', 'services/backend/v2alpha/create-database.ts'));
   const k8s = {
     namespace: 'test-namespace',
     applyYamlList: async (list, action) => {
@@ -74,7 +80,7 @@ function setup() {
     }
   };
   return { body, createDatabase, k8s, writes, backups,
-    handler: () => load(resolve(root, 'pages/api/v2alpha/databases.ts')).default };
+    handler: () => load(sourceFile('release-v5.1', 'pages/api/v2alpha/databases.ts')).default };
 }
 const request = (type, version) => ({
   name: 'test-db', type, ...(version ? { version } : {}),
@@ -121,7 +127,7 @@ test('release-only polardbx remains accepted; invalid engines are rejected', () 
 
 test('public config returns the numeric storage limit without authentication or private env', async () => {
   const load = loader();
-  const handler = load(resolve(root, 'pages/api/platform/getClientAppConfig.ts')).default;
+  const handler = load(sourceFile('release-v5.1', 'pages/api/platform/getClientAppConfig.ts')).default;
   const previous = config.database.storage.maxSize;
   try {
     for (const expected of [300, 500]) {

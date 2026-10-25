@@ -9,7 +9,7 @@ on:
   workflow_dispatch:
     inputs:
       publish_images:
-        description: Publish runtime and cluster images for both source trees
+        description: Publish runtime and cluster images for both deployment profiles
         type: boolean
         default: false
       upload_oss:
@@ -26,7 +26,24 @@ concurrency:
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
+  compatibility:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20.20.2'
+      - uses: azure/setup-helm@v4
+        with:
+          version: v3.17.3
+      - run: corepack enable && corepack prepare pnpm@8.9.0 --activate
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm --dir database typecheck
+      - run: pnpm --dir database test:ci
+      - run: node --test tests/test_*.cjs
+
   versions:
+    needs: compatibility
     strategy:
       fail-fast: false
       matrix:

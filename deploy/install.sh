@@ -1,6 +1,11 @@
 #!/usr/bin/env bash
 set -euo pipefail
 bundle_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+# Validate before either installer can mutate cluster resources.
+case "${KUBEBLOCKS_VERSION:-}" in
+  ""|0.8|0.9) ;;
+  *) echo 'KUBEBLOCKS_VERSION must be 0.8 or 0.9' >&2; exit 1 ;;
+esac
 # Separate releases preserve existing resource ownership, values and storage.
 (
   cd "${bundle_dir}/dataflow"
