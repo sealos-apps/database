@@ -1,17 +1,74 @@
 # database
 
-The `main/` and `release-v5.1/` directories contain independent Database
-workspaces. Both are built by `.github/workflows/ci.yml`; these names refer to
-source directories, not the branch that triggers CI.
+The repository root is the single Database source workspace and image build
+context. The application in `database/` supports KubeBlocks 0.8 and 0.9,
+selected at runtime by mounted configuration. The 0.8 deployment profile lives
+in `deploy/kubeblocks-0.8/`; the 0.9 profile lives in `database/deploy/`.
+Historical publishing channel names are retained for installation compatibility
+and do not correspond to source directories.
+
+## KubeBlocks compatibility
+
+```yaml
+# /app/data/config.yaml (production), database/data/config.local.yaml (development)
+database:
+  kubeblocks:
+    version: "0.9" # "0.8" for a KubeBlocks 0.8 cluster
+```
+
+- Helm value: `dbproviderConfig.kubeblocksVersion`, quoted `"0.8"` or `"0.9"`.
+  The main deployment profile defaults to 0.9 and release-v5.1 defaults to 0.8.
+- Installer override: `KUBEBLOCKS_VERSION=0.8 bash install.sh`, or export it
+  before invoking Sealos. See [deploy/env.template](deploy/env.template).
+  An empty/unset value preserves persisted Helm values and profile defaults.
+  Explicit `HELM_OPTIONS`/`HELM_OPTS` arguments take precedence over this input.
+- Direct Helm override: `--set-string dbproviderConfig.kubeblocksVersion=0.8`.
+  Helm renders the setting into the mounted ConfigMap; the application does not
+  read `KUBEBLOCKS_VERSION` from its process environment. There is no build-time
+  version flag, so the same built runtime image can run either mode.
+- Restart the application after changing configuration. Use the version that
+  matches the installed operator. Changing this setting does not upgrade
+  KubeBlocks, migrate existing instances, or convert their resources.
+
+Old manually mounted main YAML defaults to 0.9. Old release YAML without the
+new setting is recognized by its existing `cloud.port`, `cloud.disableHttps`
+and `database.features.logs/kafka/managedDb` fields and retains 0.8. This is
+configuration-format compatibility, not operator detection. Add an explicit
+version to custom configurations; unsupported versions fail startup validation.
+
+Routes select one complete version implementation, including SSR and client
+navigation, so old resource operations are not mixed with new UI models.
+Missing operations return 404 rather than falling through to the other version.
+The 0.8 implementation retains PolarDB-X, ClusterVersion discovery, legacy
+parameter history, backup behavior, and Sealox MySQL compatibility. The 0.9
+implementation retains ComponentVersion discovery and newer resource templates.
+Shared modules live under `database/src`; version-specific modules live
+under `src/implementations/kb08` and `kb09`. Version-specific UI and API contracts
+are deliberately retained in this first consolidation; they are not yet one
+normalized API/model. Database resource and data migrations are outside this change.
+
+Only one dependency tree (Node 20.20.2, pnpm 8.9.0, Next 14) is installed:
+
+```sh
+pnpm install --frozen-lockfile
+# Pick one example; both run from the same application directory.
+cp database/data/config.kb08.example.yaml database/data/config.local.yaml
+pnpm dev-db
+```
+
+Both deployment profiles retain their existing release, namespace, resource
+identity and persisted values paths. Reuse the deployment profile originally
+used to install the service. An explicit runtime version override does not
+change those installation paths or migrate saved values.
 
 ## CI and publishing
 
 | Trigger | Validation | Image publication | OSS upload |
 | --- | --- | --- | --- |
-| Pull request to `main` | Both workspaces, Helm and runtime builds | No | No |
-| Push to `main` | Both workspaces | Yes | Yes |
-| Push a `v*` tag | Both workspaces | Yes | Yes |
-| Manual run | Both workspaces | `publish_images` or `upload_oss` | `upload_oss` |
+| Pull request to `main` | Both deployment profiles and unified runtime | No | No |
+| Push to `main` | Unified runtime and both profiles | Yes | Yes |
+| Push a `v*` tag | Unified runtime and both profiles | Yes | Yes |
+| Manual run | Unified runtime and both profiles | `publish_images` or `upload_oss` | `upload_oss` |
 
 DataFlow is imported once under `dataflow/` (provenance in
 [dataflow/IMPORT.md](dataflow/IMPORT.md)). Both source channels build the same
@@ -19,7 +76,7 @@ DataFlow source alongside their respective Database frontend. Their cluster
 images install both services using [deploy/install.sh](deploy/install.sh).
 
 Every runtime image and cluster image supports `linux/amd64` and `linux/arm64`.
-Runtime builds use each workspace's root Dockerfile with `name=database` and
+All Database runtime builds use `Dockerfile` with `name=database` and
 `path=database`. Cluster images include the Helm chart, entrypoint
 and the runtime image saved by Sealos for the selected architecture.
 
@@ -73,7 +130,7 @@ runs; a passing PR build alone does not verify those integrations.
 
 ## Deployment compatibility
 
-Both source workspaces use `database/` and the `database` package name. Runtime
+The unified source workspace uses `database/` and the `database` package name. Runtime
 and cluster image names use `database`. Deployment identity
 remains `dbprovider-frontend`: Helm release, namespace, resource names and selectors.
 The chart directory remains `charts/database-frontend`.
@@ -91,10 +148,10 @@ by a different Helm release. No namespace or database-data migration is performe
 
 ## Currency display upgrade
 
-Both `main/` and `release-v5.1/` now read the display symbol from Sealos Desktop
+Both KubeBlocks implementations read the display symbol from Sealos Desktop
 HostConfig after SDK initialization. The application and shared UI use the same
 published `@labring/sealos-desktop-sdk@0.1.24` directly.
-Only `packages/ui` remains local. Shared (`1.0.3`), driver (`1.0.0`), GTM (`1.1.0`),
+UI components and theme come from `@labring/sealos-chakra-ui@1.0.0`; there are no local UI packages. Shared (`1.0.3`), driver (`1.0.0`), GTM (`1.1.0`),
 and Desktop SDKs come from npm. Each application owns its host-config store; main
 also owns the quota-dialog adapter that reuses this store. HostConfig is requested once per page
 lifetime and kept only in memory. Price
@@ -117,17 +174,18 @@ response no longer returns `CurrencySymbol`.
 
 No release, namespace, selector, hostname or `dbproviderConfig` contract is renamed.
 
-Local regression checks (install both workspaces with pnpm 8.9.0 first):
+Local regression checks (install the root workspace with pnpm 8.9.0 first):
 
 ```sh
 node --test tests/test_host_config.cjs
 python3 tests/test_deployment_compatibility.py
-pnpm --dir main/database typecheck
-pnpm --dir release-v5.1/database typecheck
+pnpm --dir database typecheck
+pnpm --dir database test:ci
+node --test tests/test_*.cjs
 ```
 
-Run `helm lint` and `helm template` for each workspace's
-`database/deploy/charts/database-frontend` chart as well. These checks do not replace
+Run `helm lint` and `helm template` for both `database/deploy/charts/database-frontend`
+and `deploy/kubeblocks-0.8/charts/database-frontend` as well. These checks do not replace
 an embedded Desktop integration test.
 
 ## Sealox compatibility on release-v5.1
@@ -156,7 +214,7 @@ node --test tests/test_sealox_compatibility.cjs
 
 ## Direct metrics SDK
 
-Both source workspaces use `@labring/sealos-metrics-sdk@0.2.0` in server-side
+Both KubeBlocks implementations use `@labring/sealos-metrics-sdk@0.2.0` in server-side
 monitoring routes. Database templates use `database.query`; existing custom
 PromQL uses `raw.query`. API authentication and chart conversions remain in the
 application. The SDK additionally checks Kubernetes readiness and permission to
@@ -172,16 +230,15 @@ The metrics endpoint must expose Prometheus `/api/v1/query` and
   user values or pass `--set-string dbproviderConfig.metricsUrl=<endpoint>`;
   the chart writes `database.components.monitoring.url`. The install script
   also accepts `metricsUrl=<endpoint>`. The default is the endpoint above.
-  For local development, copy `main/database/data/config.example.yaml` to
-  `main/database/data/config.local.yaml` and edit the same setting.
+  For local development, copy `database/data/config.example.yaml` to
+  `database/data/config.local.yaml` and edit the same setting.
   Restart the application after changing the mounted configuration.
 - Release-v5.1: the chart mounts `/app/data/config.yaml` and writes
   `database.components.monitoring.url` from `dbproviderConfig.metricsUrl`.
   The install script accepts `metricsUrl=<endpoint>` or `METRICS_URL=<endpoint>`,
   with `metricsUrl` taking precedence. For local development, copy
-  `release-v5.1/database/data/config.example.yaml` to `data/config.local.yaml`
-  within that application and edit the same YAML field. Application environment
-  variables are no longer read. See the release application's README for the
+  `database/data/config.kb08.example.yaml` to `database/data/config.local.yaml` and edit the same YAML field. Application environment
+  variables are no longer read. See [the 0.8 deployment profile README](deploy/kubeblocks-0.8/README.md) for the
   complete migration table; deploy the new image and ConfigMap together.
 
 On upgrade, replace custom `dbproviderConfig.monitorUrl` with `metricsUrl` and
@@ -275,3 +332,11 @@ architectures. Actual installation may initialize/upgrade DataFlow metadata;
 local source/build checks do not prove live storage, authentication or browser
 acceptance. Live deployment requires a chosen cluster and a separately authorized
 metadata modification if initialization or schema migration is needed.
+
+## Published UI package
+
+The application imports `@labring/sealos-chakra-ui@1.0.0` directly. Its 86 source
+files match the former local UI implementation. Next.js transpiles this source
+package via `transpilePackages`. Root `postinstall` generates Chakra theme types
+from the installed package, so local development and container builds use the
+same theme without retaining a local component library.

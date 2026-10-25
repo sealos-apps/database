@@ -1,3 +1,4 @@
+const { appRoot, sourceFile, originalAlias } = require('./support/source.cjs');
 // Offline integration: real SDK, fictional Kubernetes/Prometheus HTTP fixtures.
 const { test } = require('node:test');
 const assert = require('node:assert/strict');
@@ -7,14 +8,14 @@ const { resolve, dirname } = require('node:path');
 const { createRequire, Module } = require('node:module');
 
 function loadHelper(workspace, relative = 'services/monitorFetch.ts', mocks = {}) {
-  const filename = resolve(workspace, 'database/src', relative);
-  const requireWorkspace = createRequire(resolve(workspace, 'database/package.json'));
+  const filename = sourceFile(workspace, relative);
+  const requireWorkspace = createRequire(resolve(appRoot, 'package.json'));
   const ts = requireWorkspace('typescript');
   const mod = new Module(filename, module);
   mod.filename = filename;
   mod.paths = Module._nodeModulePaths(dirname(filename));
   const originalRequire = mod.require.bind(mod);
-  mod.require = id => id in mocks ? mocks[id] : id === '@/config'
+  mod.require = id => originalAlias(id) in mocks ? mocks[originalAlias(id)] : originalAlias(id) === '@/config'
     ? { Config: () => ({ database: { components: { monitoring: { url: process.env.METRICS_URL } } } }) }
     : originalRequire(id);
   mod._compile(ts.transpileModule(readFileSync(filename, 'utf8'), {
@@ -94,7 +95,7 @@ for (const workspace of ['main', 'release-v5.1']) {
       assert.deepEqual(output.data.result, { xData: [0], yData: [{ name: 'demo-postgresql-0', data: [12.5] }] });
     }
     const count = requests.filter(r => r.url.pathname.startsWith('/api/v1/query')).length;
-    const requireWorkspace = createRequire(resolve(workspace, 'database/package.json'));
+    const requireWorkspace = createRequire(resolve(appRoot, 'package.json'));
     // The shared SDK ships TypeScript; transpile it just like the route fixtures.
     const sharedErrors = loadHelper(workspace,
       requireWorkspace.resolve('@labring/sealos-shared-sdk/server/v2alpha'));

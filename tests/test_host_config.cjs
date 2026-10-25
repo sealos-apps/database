@@ -1,3 +1,4 @@
+const { appRoot, sourceFile, originalAlias } = require('./support/source.cjs');
 // Run with: node --test tests/test_host_config.cjs (after installing both workspaces).
 const { test } = require('node:test');
 const assert = require('node:assert/strict');
@@ -6,13 +7,13 @@ const { resolve, dirname } = require('node:path');
 const { createRequire, Module } = require('node:module');
 
 function loadTypeScript(filename, workspace, mocks = {}) {
-  const requireWorkspace = createRequire(resolve(workspace, 'database/package.json'));
+  const requireWorkspace = createRequire(resolve(appRoot, 'package.json'));
   const ts = requireWorkspace('typescript');
   const mod = new Module(filename, module);
   mod.filename = filename;
   mod.paths = Module._nodeModulePaths(dirname(filename));
   const requireModule = mod.require.bind(mod);
-  mod.require = id => id in mocks ? mocks[id] : requireModule(id);
+  mod.require = id => originalAlias(id) in mocks ? mocks[originalAlias(id)] : requireModule(id);
   mod._compile(ts.transpileModule(readFileSync(filename, 'utf8'), {
     compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2020 }
   }).outputText, filename);
@@ -21,7 +22,7 @@ function loadTypeScript(filename, workspace, mocks = {}) {
 
 for (const workspace of ['main', 'release-v5.1']) {
   const { createHostConfigStore } = loadTypeScript(
-    resolve(workspace, 'database/src/store/hostConfig.ts'), workspace
+    sourceFile(workspace, 'store/hostConfig.ts'), workspace
   );
   const host = { cloud: { domain: 'example.com', port: '', regionUid: 'test' },
     features: { subscription: false } };
@@ -68,9 +69,9 @@ for (const workspace of ['main', 'release-v5.1']) {
 }
 
 test('main: mounted config accepts removed currency field only after migration', () => {
-  const { AppConfigSchema } = loadTypeScript(resolve('main/database/src/types/config.ts'), 'main');
-  const requireMain = createRequire(resolve('main/database/package.json'));
-  const config = requireMain('js-yaml').load(readFileSync('main/database/data/config.example.yaml', 'utf8'));
+  const { AppConfigSchema } = loadTypeScript(resolve('database/src/types/config.ts'), 'main');
+  const requireMain = createRequire(resolve('database/package.json'));
+  const config = requireMain('js-yaml').load(readFileSync('database/data/config.example.yaml', 'utf8'));
   assert.equal(AppConfigSchema.safeParse(config).success, true);
   config.database.ui.currencySymbol = 'usd';
   assert.equal(AppConfigSchema.safeParse(config).success, false);
@@ -78,7 +79,7 @@ test('main: mounted config accepts removed currency field only after migration',
 
 for (const workspace of ['main', 'release-v5.1']) {
   test(`${workspace}: application and shared UI resolve the same published SDK`, () => {
-    const appRequire = createRequire(resolve(workspace, 'database/package.json'));
+    const appRequire = createRequire(resolve(appRoot, 'package.json'));
     const sharedRequire = createRequire(appRequire.resolve('@labring/sealos-shared-sdk'));
     assert.equal(appRequire.resolve('@labring/sealos-desktop-sdk/app'), sharedRequire.resolve('@labring/sealos-desktop-sdk/app'));
     const sdkPackage = JSON.parse(readFileSync(resolve(dirname(appRequire.resolve('@labring/sealos-desktop-sdk/app')), '../package.json'), 'utf8'));

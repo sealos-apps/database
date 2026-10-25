@@ -1,0 +1,114 @@
+# Default values for database frontend helm chart.
+
+image: ghcr.io/labring/sealos-database-frontend:latest
+imagePullPolicy: Always
+
+imagePullSecrets: []
+fullnameOverride: "dbprovider-frontend"
+
+replicaCount: 1
+
+podAnnotations: {}
+podLabels: {}
+
+podSecurityContext: {}
+
+securityContext:
+  runAsNonRoot: true
+  runAsUser: 1001
+  allowPrivilegeEscalation: false
+  capabilities:
+    drop:
+      - "ALL"
+
+service:
+  type: ClusterIP
+  port: 3000
+
+tests:
+  image: busybox:1.36.1
+  path: /healthz
+
+startupProbe:
+  httpGet:
+    path: /healthz
+    port: 3000
+  periodSeconds: 2
+  timeoutSeconds: 3
+  failureThreshold: 30
+readinessProbe:
+  httpGet:
+    path: /healthz
+    port: 3000
+  periodSeconds: 10
+  timeoutSeconds: 3
+  failureThreshold: 6
+livenessProbe:
+  httpGet:
+    path: /healthz
+    port: 3000
+  periodSeconds: 20
+  timeoutSeconds: 3
+  failureThreshold: 3
+
+resources:
+  limits:
+    cpu: 2000m
+    memory: 2048Mi
+  requests:
+    cpu: 10m
+    memory: 128Mi
+
+ingress:
+  className: nginx
+  host: ""
+  annotations: {}
+
+# Application settings are rendered into /app/data/config.yaml.
+# Override dbproviderConfig keys in persisted user values or with Helm --set.
+dbproviderConfig:
+  # Target KubeBlocks version. Override with --set-string dbproviderConfig.kubeblocksVersion=0.8 or 0.9.
+  kubeblocksVersion: "0.8"
+  cloudDomain: "127.0.0.1.nip.io"
+  cloudPort: ""
+  certSecretName: "wildcard-cert"
+  tlsRejectUnauthorized: "1"
+  # Direct Prometheus-compatible endpoint (not database-monitor).
+  # Override via user values or --set-string dbproviderConfig.metricsUrl=<endpoint>.
+  metricsUrl: "http://vmselect-vm-stack-victoria-metrics-k8s-stack.vm.svc.cluster.local:8481/select/0/prometheus"
+  migrateFileImage: ""
+  backupEnabled: true
+  logEnabled: false
+  showDocument: true
+  dataImportEnabled: false
+  guideEnabled: true
+  kafkaEnabled: true
+  billingUrl: "http://account-service.account-system.svc:2333"
+  managedDbEnabled: false
+  vlogsBaseUrl: ""
+
+  disableHttps: false
+  customScripts: []
+  forcedStorageClassName: ""
+  storageMaxSize: 300
+  alertingUrl: "http://database-alert.sealos.svc:8000"
+  minioUrl: ""
+  minioPort: 443
+  minioUseSSL: true
+  minioBucketName: "database-test"
+  minioAccessKey: ""
+  minioSecretKey: ""
+  eventAnalysisFastGPTKey: ""
+
+affinity:
+  podAntiAffinity:
+    preferredDuringSchedulingIgnoredDuringExecution:
+      - weight: 100
+        podAffinityTerm:
+          labelSelector:
+            matchExpressions:
+              - key: "app"
+                operator: In
+                values:
+                  - dbprovider-frontend
+          topologyKey: "kubernetes.io/hostname"

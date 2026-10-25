@@ -10,12 +10,17 @@ dataflow_image="${4:?dataflow image is required}"
 tag="${5:?tag is required}"
 case "$source_tree" in main|release-v5.1) ;; *) echo "Unsupported source: $source_tree" >&2; exit 1 ;; esac
 repo_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+# Publishing channels retain their historical names, independently of source layout.
+case "$source_tree" in
+  main) database_deploy_dir="${repo_dir}/database/deploy" ;;
+  release-v5.1) database_deploy_dir="${repo_dir}/deploy/kubeblocks-0.8" ;;
+esac
 # Never replace an existing directory: callers allocate a fresh staging path.
 mkdir "$output_dir"
 cp "${repo_dir}/deploy/Kubefile" "${repo_dir}/deploy/install.sh" "$output_dir/"
 mkdir "$output_dir/database" "$output_dir/dataflow" "$output_dir/charts"
-cp -R "${repo_dir}/${source_tree}/database/deploy/charts/database-frontend" "$output_dir/charts/"
-cp "${repo_dir}/${source_tree}/database/deploy/database-frontend-entrypoint.sh" "$output_dir/database/"
+cp -R "${database_deploy_dir}/charts/database-frontend" "$output_dir/charts/"
+cp "${database_deploy_dir}/database-frontend-entrypoint.sh" "$output_dir/database/"
 cp -R "${repo_dir}/dataflow/deploy/charts/dataflow" "$output_dir/charts/"
 # Sealos v5.1.2 discovers charts only under the package-root charts directory.
 # Preserve both installers' relative paths without duplicating chart contents.

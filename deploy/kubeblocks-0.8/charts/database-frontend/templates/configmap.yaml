@@ -1,0 +1,55 @@
+{{- $kbVersion := .Values.dbproviderConfig.kubeblocksVersion -}}
+{{- if not (has $kbVersion (list "0.8" "0.9")) -}}
+{{- fail "dbproviderConfig.kubeblocksVersion must be the string 0.8 or 0.9 (use --set-string)" -}}
+{{- end -}}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "database-frontend.fullname" . }}-config
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "database-frontend.labels" . | nindent 4 }}
+data:
+  config.yaml: |-
+    cloud:
+      domain: {{ .Values.dbproviderConfig.cloudDomain | quote }}
+      desktopDomain: {{ .Values.dbproviderConfig.cloudDomain | quote }}
+      port: {{ .Values.dbproviderConfig.cloudPort | quote }}
+      disableHttps: {{ .Values.dbproviderConfig.disableHttps }}
+    database:
+      kubeblocks:
+        version: {{ $kbVersion | quote }}
+      features:
+        guide: {{ .Values.dbproviderConfig.guideEnabled }}
+        showDocument: {{ .Values.dbproviderConfig.showDocument }}
+        fileImport: {{ .Values.dbproviderConfig.dataImportEnabled }}
+        logs: {{ .Values.dbproviderConfig.logEnabled }}
+        kafka: {{ .Values.dbproviderConfig.kafkaEnabled }}
+        managedDb: {{ .Values.dbproviderConfig.managedDbEnabled }}
+      ui:
+        customScripts: {{ .Values.dbproviderConfig.customScripts | toJson }}
+      storage:
+        forcedClassName: {{ .Values.dbproviderConfig.forcedStorageClassName | quote }}
+        maxSize: {{ .Values.dbproviderConfig.storageMaxSize }}
+      components:
+        monitoring:
+          url: {{ .Values.dbproviderConfig.metricsUrl | quote }}
+        alerting:
+          url: {{ .Values.dbproviderConfig.alertingUrl | quote }}
+        billing:
+          url: {{ .Values.dbproviderConfig.billingUrl | quote }}
+        logging:
+          url: {{ .Values.dbproviderConfig.vlogsBaseUrl | quote }}
+        storage:
+          url: {{ .Values.dbproviderConfig.minioUrl | quote }}
+          port: {{ .Values.dbproviderConfig.minioPort | default 443 }}
+          useSSL: {{ .Values.dbproviderConfig.minioUseSSL }}
+          bucketName: {{ .Values.dbproviderConfig.minioBucketName | quote }}
+          accessKey: {{ .Values.dbproviderConfig.minioAccessKey | quote }}
+          secretKey: {{ .Values.dbproviderConfig.minioSecretKey | quote }}
+        eventAnalysis:
+          fastGPTKey: {{ .Values.dbproviderConfig.eventAnalysisFastGPTKey | quote }}
+      migration:
+        importDataImage: {{ .Values.dbproviderConfig.migrateFileImage | quote }}
+      backup:
+        enabled: {{ .Values.dbproviderConfig.backupEnabled }}
