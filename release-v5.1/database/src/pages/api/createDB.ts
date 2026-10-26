@@ -18,7 +18,10 @@ import { BackupSupportedDBTypeList } from '@/constants/db';
 import { adaptDBDetail, convertBackupFormToSpec } from '@/utils/adapt';
 import { CustomObjectsApi, KubernetesObject, PatchUtils } from '@kubernetes/client-node';
 import { getScore } from '@/utils/tools';
-import { validatePolarDBXResources } from '@/utils/database';
+import {
+  hasReplicaChange,
+  validatePolarDBXResources
+} from '@/utils/database';
 import {
   ensurePostgreSQLConfigSpec,
   getCurrentParameterValues,
@@ -51,22 +54,35 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse<
       )) as {
         body: KbPgClusterType;
       };
-      const { cpu, memory, replicas, storage, terminationPolicy } = adaptDBDetail(body);
+      const dbDetail = adaptDBDetail(body);
+      const { cpu, memory, replicas, storage, terminationPolicy } = dbDetail;
 
       const opsRequests = [];
 
       if (cpu !== dbForm.cpu || memory !== dbForm.memory) {
-        const verticalScalingYaml = json2ResourceOps(dbForm, 'VerticalScaling');
+        const verticalScalingYaml = json2ResourceOps(
+          dbForm,
+          'VerticalScaling',
+          body.spec.componentSpecs
+        );
         opsRequests.push(verticalScalingYaml);
       }
 
-      if (replicas !== dbForm.replicas) {
-        const horizontalScalingYaml = json2ResourceOps(dbForm, 'HorizontalScaling');
+      if (hasReplicaChange(replicas, dbForm.replicas)) {
+        const horizontalScalingYaml = json2ResourceOps(
+          dbForm,
+          'HorizontalScaling',
+          body.spec.componentSpecs
+        );
         opsRequests.push(horizontalScalingYaml);
       }
 
       if (dbForm.storage > storage) {
-        const volumeExpansionYaml = json2ResourceOps(dbForm, 'VolumeExpansion');
+        const volumeExpansionYaml = json2ResourceOps(
+          dbForm,
+          'VolumeExpansion',
+          body.spec.componentSpecs
+        );
         opsRequests.push(volumeExpansionYaml);
       }
 
